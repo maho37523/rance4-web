@@ -2,6 +2,7 @@ name: Verify source build
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 env:
   EM_VERSION: 6.0.8
