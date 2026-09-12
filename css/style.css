@@ -15,6 +15,35 @@ body {
     white-space: normal;
 }
 
+.guide-tools {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid #d9dfe8;
+    border-radius: .25rem;
+}
+
+.guide-tools h2 {
+    margin-top: 0;
+    font-size: 1.15rem;
+}
+
+.guide-tools-grid {
+    display: grid;
+    gap: .6rem;
+    margin-bottom: 1rem;
+}
+
+.guide-tool-item {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.guide-tool-item span {
+    color: #667085;
+}
+
 .local-status {
     min-height: 1.5em;
 }

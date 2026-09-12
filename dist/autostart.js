@@ -1,3 +1,5 @@
+import {renderToolsPanel} from './tools-registry.js';
+
 const games = {
   rance4: {name: '兰斯 4：教团的遗产', resourceStrategy: 'published'},
   rance41: {name: '兰斯 4.1：拯救制药厂', resourceStrategy: 'published'},
@@ -82,6 +84,7 @@ async function startRanceKing() {
 async function startSelectedGame() {
   const game = new URLSearchParams(location.search).get('game');
   if (!game || !games[game]) return;
+  renderToolsPanel(game);
   if (games[game].resourceStrategy === 'local-import') {
     if (game === 'ranceking') {
       await startRanceKing();
