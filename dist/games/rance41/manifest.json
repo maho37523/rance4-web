@@ -1,41 +1,149 @@
 {
   "id": "rance41",
   "files": [
-    "ACG.dat",
-    "ADISK.dat",
-    "AMUS.DAT",
-    "BCG.dat",
-    "CCG.dat",
-    "COPYING.txt",
-    "GAIJI.DAT",
-    "RANCE41.ICO",
-    "SDL2.dll",
-    "SDL2_ttf.dll",
-    "Version.txt",
-    "bgm/02.mp3",
-    "bgm/03.mp3",
-    "bgm/04.mp3",
-    "bgm/05.mp3",
-    "bgm/06.mp3",
-    "bgm/07.mp3",
-    "bgm/08.mp3",
-    "bgm/09.mp3",
-    "bgm/10.mp3",
-    "bgm/11.mp3",
-    "bgm/12.mp3",
-    "bgm/13.mp3",
-    "bgm/14.mp3",
-    "bgm/15.mp3",
-    "bgm/16.mp3",
-    "bgm/17.mp3",
-    "bgm/18.mp3",
-    "bgm/playlist.txt",
-    "libfreetype-6.dll",
-    "simhei.ttf",
-    "system3.exe",
-    "system3.ini",
-    "zlib1.dll",
-    "兰斯4.1 汉化说明.pdf",
-    "配布フリー宣言（アリスソフト）.txt"
+    {
+      "path": "ACG.dat",
+      "publicPath": "ACG.dat"
+    },
+    {
+      "path": "ADISK.dat",
+      "publicPath": "ADISK.dat"
+    },
+    {
+      "path": "AMUS.DAT",
+      "publicPath": "AMUS.DAT"
+    },
+    {
+      "path": "BCG.dat",
+      "publicPath": "BCG.dat"
+    },
+    {
+      "path": "bgm/02.mp3",
+      "publicPath": "bgm/02.mp3"
+    },
+    {
+      "path": "bgm/03.mp3",
+      "publicPath": "bgm/03.mp3"
+    },
+    {
+      "path": "bgm/04.mp3",
+      "publicPath": "bgm/04.mp3"
+    },
+    {
+      "path": "bgm/05.mp3",
+      "publicPath": "bgm/05.mp3"
+    },
+    {
+      "path": "bgm/06.mp3",
+      "publicPath": "bgm/06.mp3"
+    },
+    {
+      "path": "bgm/07.mp3",
+      "publicPath": "bgm/07.mp3"
+    },
+    {
+      "path": "bgm/08.mp3",
+      "publicPath": "bgm/08.mp3"
+    },
+    {
+      "path": "bgm/09.mp3",
+      "publicPath": "bgm/09.mp3"
+    },
+    {
+      "path": "bgm/10.mp3",
+      "publicPath": "bgm/10.mp3"
+    },
+    {
+      "path": "bgm/11.mp3",
+      "publicPath": "bgm/11.mp3"
+    },
+    {
+      "path": "bgm/12.mp3",
+      "publicPath": "bgm/12.mp3"
+    },
+    {
+      "path": "bgm/13.mp3",
+      "publicPath": "bgm/13.mp3"
+    },
+    {
+      "path": "bgm/14.mp3",
+      "publicPath": "bgm/14.mp3"
+    },
+    {
+      "path": "bgm/15.mp3",
+      "publicPath": "bgm/15.mp3"
+    },
+    {
+      "path": "bgm/16.mp3",
+      "publicPath": "bgm/16.mp3"
+    },
+    {
+      "path": "bgm/17.mp3",
+      "publicPath": "bgm/17.mp3"
+    },
+    {
+      "path": "bgm/18.mp3",
+      "publicPath": "bgm/18.mp3"
+    },
+    {
+      "path": "bgm/playlist.txt",
+      "publicPath": "bgm/playlist.txt"
+    },
+    {
+      "path": "CCG.dat",
+      "publicPath": "CCG.dat"
+    },
+    {
+      "path": "COPYING.txt",
+      "publicPath": "COPYING.txt"
+    },
+    {
+      "path": "GAIJI.DAT",
+      "publicPath": "GAIJI.DAT"
+    },
+    {
+      "path": "libfreetype-6.dll",
+      "publicPath": "libfreetype-6.dll"
+    },
+    {
+      "path": "RANCE41.ICO",
+      "publicPath": "RANCE41.ICO"
+    },
+    {
+      "path": "SDL2_ttf.dll",
+      "publicPath": "SDL2_ttf.dll"
+    },
+    {
+      "path": "SDL2.dll",
+      "publicPath": "SDL2.dll"
+    },
+    {
+      "path": "simhei.ttf",
+      "publicPath": "simhei.ttf"
+    },
+    {
+      "path": "system3.exe",
+      "publicPath": "system3.exe"
+    },
+    {
+      "path": "system3.ini",
+      "publicPath": "system3.ini"
+    },
+    {
+      "path": "Version.txt",
+      "publicPath": "Version.txt"
+    },
+    {
+      "path": "zlib1.dll",
+      "publicPath": "zlib1.dll"
+    },
+    {
+      "path": "兰斯4.1 汉化说明.pdf",
+      "publicPath": "兰斯4.1 汉化说明.pdf"
+    },
+    {
+      "path": "配布フリー宣言（アリスソフト）.txt",
+      "publicPath": "配布フリー宣言（アリスソフト）.txt"
+    }
   ]
 }

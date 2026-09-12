@@ -20,9 +20,13 @@ async function startSelectedGame() {
     const manifest = await manifestResponse.json();
     const files = [];
     for (let i = 0; i < manifest.files.length; i++) {
-      const path = manifest.files[i];
+      const entry = typeof manifest.files[i] === 'string'
+        ? {path: manifest.files[i], publicPath: manifest.files[i]}
+        : manifest.files[i];
+      const path = entry.path;
+      const publicPath = entry.publicPath || path;
       status.textContent = `正在加载原始游戏文件：${i + 1} / ${manifest.files.length}`;
-      const url = new URL(path.split('/').map(encodeURIComponent).join('/'), gameRoot);
+      const url = new URL(publicPath.split('/').map(encodeURIComponent).join('/'), gameRoot);
       const response = await fetch(url);
       if (!response.ok) throw new Error(`无法读取 ${path}`);
       files.push(new File([await response.blob()], path.split('/').pop()));

@@ -1,58 +1,217 @@
 {
   "id": "rance4",
   "files": [
-    ".xsys35rc",
-    "RANCE4CN.EXE",
-    "RANCE4GA.ALD",
-    "RANCE4SA.ALD",
-    "RANCE4WA.ALD",
-    "SourceHanSansCN-Normal.otf",
-    "System39.ain",
-    "_inmm.ini",
-    "bgm/02.mp3",
-    "bgm/03.mp3",
-    "bgm/04.mp3",
-    "bgm/05.mp3",
-    "bgm/06.mp3",
-    "bgm/07.mp3",
-    "bgm/08.mp3",
-    "bgm/09.mp3",
-    "bgm/10.mp3",
-    "bgm/11.mp3",
-    "bgm/12.mp3",
-    "bgm/13.mp3",
-    "bgm/14.mp3",
-    "bgm/15.mp3",
-    "bgm/16.mp3",
-    "bgm/17.mp3",
-    "bgm/18.mp3",
-    "bgm/19.mp3",
-    "bgm/20.mp3",
-    "bgm/21.mp3",
-    "bgm/22.mp3",
-    "bgm/23.mp3",
-    "bgm/24.mp3",
-    "bgm/25.mp3",
-    "bgm/26.mp3",
-    "bgm/27.mp3",
-    "bgm/28.mp3",
-    "bgm/29.mp3",
-    "bgm/30.mp3",
-    "bgm/31.mp3",
-    "bgm/32.mp3",
-    "bgm/33.mp3",
-    "bgm/34.mp3",
-    "bgm/35.mp3",
-    "bgm/36.mp3",
-    "bgm/37.mp3",
-    "bgm/38.mp3",
-    "bgm/39.mp3",
-    "bgm/40.mp3",
-    "bgm/41.mp3",
-    "bgm/42.mp3",
-    "bgm/43.mp3",
-    "汉化说明.txt",
-    "配布フリー宣言（アリスソフト）.txt",
-    "附汉化组组长告知.txt"
+    {
+      "path": "_inmm.ini",
+      "publicPath": "_inmm.ini"
+    },
+    {
+      "path": ".xsys35rc",
+      "publicPath": "__xsys35rc"
+    },
+    {
+      "path": "bgm/02.mp3",
+      "publicPath": "bgm/02.mp3"
+    },
+    {
+      "path": "bgm/03.mp3",
+      "publicPath": "bgm/03.mp3"
+    },
+    {
+      "path": "bgm/04.mp3",
+      "publicPath": "bgm/04.mp3"
+    },
+    {
+      "path": "bgm/05.mp3",
+      "publicPath": "bgm/05.mp3"
+    },
+    {
+      "path": "bgm/06.mp3",
+      "publicPath": "bgm/06.mp3"
+    },
+    {
+      "path": "bgm/07.mp3",
+      "publicPath": "bgm/07.mp3"
+    },
+    {
+      "path": "bgm/08.mp3",
+      "publicPath": "bgm/08.mp3"
+    },
+    {
+      "path": "bgm/09.mp3",
+      "publicPath": "bgm/09.mp3"
+    },
+    {
+      "path": "bgm/10.mp3",
+      "publicPath": "bgm/10.mp3"
+    },
+    {
+      "path": "bgm/11.mp3",
+      "publicPath": "bgm/11.mp3"
+    },
+    {
+      "path": "bgm/12.mp3",
+      "publicPath": "bgm/12.mp3"
+    },
+    {
+      "path": "bgm/13.mp3",
+      "publicPath": "bgm/13.mp3"
+    },
+    {
+      "path": "bgm/14.mp3",
+      "publicPath": "bgm/14.mp3"
+    },
+    {
+      "path": "bgm/15.mp3",
+      "publicPath": "bgm/15.mp3"
+    },
+    {
+      "path": "bgm/16.mp3",
+      "publicPath": "bgm/16.mp3"
+    },
+    {
+      "path": "bgm/17.mp3",
+      "publicPath": "bgm/17.mp3"
+    },
+    {
+      "path": "bgm/18.mp3",
+      "publicPath": "bgm/18.mp3"
+    },
+    {
+      "path": "bgm/19.mp3",
+      "publicPath": "bgm/19.mp3"
+    },
+    {
+      "path": "bgm/20.mp3",
+      "publicPath": "bgm/20.mp3"
+    },
+    {
+      "path": "bgm/21.mp3",
+      "publicPath": "bgm/21.mp3"
+    },
+    {
+      "path": "bgm/22.mp3",
+      "publicPath": "bgm/22.mp3"
+    },
+    {
+      "path": "bgm/23.mp3",
+      "publicPath": "bgm/23.mp3"
+    },
+    {
+      "path": "bgm/24.mp3",
+      "publicPath": "bgm/24.mp3"
+    },
+    {
+      "path": "bgm/25.mp3",
+      "publicPath": "bgm/25.mp3"
+    },
+    {
+      "path": "bgm/26.mp3",
+      "publicPath": "bgm/26.mp3"
+    },
+    {
+      "path": "bgm/27.mp3",
+      "publicPath": "bgm/27.mp3"
+    },
+    {
+      "path": "bgm/28.mp3",
+      "publicPath": "bgm/28.mp3"
+    },
+    {
+      "path": "bgm/29.mp3",
+      "publicPath": "bgm/29.mp3"
+    },
+    {
+      "path": "bgm/30.mp3",
+      "publicPath": "bgm/30.mp3"
+    },
+    {
+      "path": "bgm/31.mp3",
+      "publicPath": "bgm/31.mp3"
+    },
+    {
+      "path": "bgm/32.mp3",
+      "publicPath": "bgm/32.mp3"
+    },
+    {
+      "path": "bgm/33.mp3",
+      "publicPath": "bgm/33.mp3"
+    },
+    {
+      "path": "bgm/34.mp3",
+      "publicPath": "bgm/34.mp3"
+    },
+    {
+      "path": "bgm/35.mp3",
+      "publicPath": "bgm/35.mp3"
+    },
+    {
+      "path": "bgm/36.mp3",
+      "publicPath": "bgm/36.mp3"
+    },
+    {
+      "path": "bgm/37.mp3",
+      "publicPath": "bgm/37.mp3"
+    },
+    {
+      "path": "bgm/38.mp3",
+      "publicPath": "bgm/38.mp3"
+    },
+    {
+      "path": "bgm/39.mp3",
+      "publicPath": "bgm/39.mp3"
+    },
+    {
+      "path": "bgm/40.mp3",
+      "publicPath": "bgm/40.mp3"
+    },
+    {
+      "path": "bgm/41.mp3",
+      "publicPath": "bgm/41.mp3"
+    },
+    {
+      "path": "bgm/42.mp3",
+      "publicPath": "bgm/42.mp3"
+    },
+    {
+      "path": "bgm/43.mp3",
+      "publicPath": "bgm/43.mp3"
+    },
+    {
+      "path": "RANCE4CN.EXE",
+      "publicPath": "RANCE4CN.EXE"
+    },
+    {
+      "path": "RANCE4GA.ALD",
+      "publicPath": "RANCE4GA.ALD"
+    },
+    {
+      "path": "RANCE4SA.ALD",
+      "publicPath": "RANCE4SA.ALD"
+    },
+    {
+      "path": "RANCE4WA.ALD",
+      "publicPath": "RANCE4WA.ALD"
+    },
+    {
+      "path": "SourceHanSansCN-Normal.otf",
+      "publicPath": "SourceHanSansCN-Normal.otf"
+    },
+    {
+      "path": "System39.ain",
+      "publicPath": "System39.ain"
+    },
+    {
+      "path": "汉化说明.txt",
+      "publicPath": "汉化说明.txt"
+    },
+    {
+      "path": "配布フリー宣言（アリスソフト）.txt",
+      "publicPath": "配布フリー宣言（アリスソフト）.txt"
+    },
+    {
+      "path": "附汉化组组长告知.txt",
+      "publicPath": "附汉化组组长告知.txt"
+    }
   ]
 }

@@ -18,6 +18,9 @@ const keys = {
 } satisfies Record<string, GameKey>;
 
 const activePointers = new Map<number, GameKey>();
+type BPress = {button: HTMLButtonElement; timer: number; long: boolean};
+const bPresses = new Map<number, BPress>();
+const B_LONG_PRESS_MS = 360;
 let cursorMode = false;
 let cursorX = 0;
 let cursorY = 0;
@@ -30,8 +33,10 @@ function canvas(): HTMLCanvasElement {
 }
 
 function sendKey(type: 'keydown' | 'keyup', gameKey: GameKey) {
-    // SDL registers its keyboard callbacks on the canvas/document/window. A
-    // bubbling event from the canvas reaches all three targets exactly once.
+    // Emscripten's SDL keyboard backend listens on document in some builds
+    // and on the canvas in others. Dispatch on document: the event then
+    // follows the normal document/window path without relying on a mobile
+    // browser to bubble a synthetic event out of a canvas.
     const event = new KeyboardEvent(type, {
         key: gameKey.key,
         code: gameKey.code,
@@ -43,7 +48,7 @@ function sendKey(type: 'keydown' | 'keyup', gameKey: GameKey) {
     // them also works around mobile WebKit's read-only constructor options.
     Object.defineProperty(event, 'keyCode', {value: gameKey.keyCode});
     Object.defineProperty(event, 'which', {value: gameKey.keyCode});
-    canvas().dispatchEvent(event);
+    document.dispatchEvent(event);
 }
 
 function releasePointer(pointerId: number) {
@@ -54,7 +59,48 @@ function releasePointer(pointerId: number) {
 }
 
 function releaseAllKeys() {
+    for (const press of bPresses.values()) window.clearTimeout(press.timer);
+    bPresses.clear();
     for (const pointerId of activePointers.keys()) releasePointer(pointerId);
+}
+
+function sendTap(gameKey: GameKey) {
+    sendKey('keydown', gameKey);
+    sendKey('keyup', gameKey);
+}
+
+function startBPress(button: HTMLButtonElement, event: PointerEvent) {
+    if (bPresses.has(event.pointerId)) return;
+    button.setPointerCapture(event.pointerId);
+    const press: BPress = {
+        button,
+        long: false,
+        timer: window.setTimeout(() => {
+            const current = bPresses.get(event.pointerId);
+            if (!current) return;
+            current.long = true;
+            // Hold Space only after the long-press threshold. This avoids a
+            // short B producing both cancel and skip in the same gesture.
+            activePointers.set(event.pointerId, keys.secondary);
+            sendKey('keydown', keys.secondary);
+            button.classList.add('active');
+        }, B_LONG_PRESS_MS),
+    };
+    bPresses.set(event.pointerId, press);
+}
+
+function releaseBPress(pointerId: number) {
+    const press = bPresses.get(pointerId);
+    if (!press) return;
+    bPresses.delete(pointerId);
+    window.clearTimeout(press.timer);
+    if (press.long) {
+        releasePointer(pointerId);
+    } else {
+        // Escape is the engine's cancel/right-click equivalent.
+        sendTap({key: 'Escape', code: 'Escape', keyCode: 27});
+    }
+    press.button.classList.remove('active');
 }
 
 function clampCursor() {
@@ -115,6 +161,10 @@ function createButton(label: string, control?: keyof typeof keys, id?: string): 
             clickAtCursor();
             return;
         }
+        if (control === 'secondary') {
+            startBPress(button, event);
+            return;
+        }
         const gameKey = keys[control];
         if (activePointers.has(event.pointerId)) return;
         activePointers.set(event.pointerId, gameKey);
@@ -124,6 +174,10 @@ function createButton(label: string, control?: keyof typeof keys, id?: string): 
     for (const eventName of ['pointerup', 'pointercancel', 'lostpointercapture']) {
         button.addEventListener(eventName, (event: Event) => {
             event.preventDefault();
+            if (control === 'secondary') {
+                releaseBPress((event as PointerEvent).pointerId);
+                return;
+            }
             releasePointer((event as PointerEvent).pointerId);
         });
     }

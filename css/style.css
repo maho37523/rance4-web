@@ -37,6 +37,8 @@ body.game {
 .contents {
     flex: 1;
     display: flex;
+    min-width: 0;
+    min-height: 0;
 }
 
 .bgblack-fade {
@@ -53,27 +55,34 @@ body.game {
 #xsystem35.fit {
     margin: 0;
     flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
 canvas.emscripten {
     border: 0px none;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
 }
 
 #xsystem35.fit.pillarbox {
     & canvas.emscripten {
-        height: 100%;
-        max-height: 100vh;
-        margin: auto;
-        display: block;
+        height: auto;
+        max-height: 100%;
     }
 }
 #xsystem35.fit.letterbox {
-    display: flex;
-    align-items: center;
-
     & canvas.emscripten {
-        width: 100%;
+        width: auto;
+        max-width: 100%;
     }
 }
 
@@ -231,6 +240,23 @@ dialog::backdrop {
 
     body.touch-controls-enabled #xsystem35.fit.pillarbox canvas.emscripten {
         max-width: calc(100vw - 18rem);
+    }
+
+    /* Reserve a stable middle stage for the game. The canvas itself keeps
+     * its intrinsic pixel ratio and is contained inside this stage. */
+    body.touch-controls-enabled #xsystem35.fit {
+        width: calc(100vw - 18rem);
+        height: 100%;
+        flex: 0 1 calc(100vw - 18rem);
+        margin: 0 auto;
+    }
+
+    body.touch-controls-enabled #xsystem35.fit canvas.emscripten {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
     }
 }
 

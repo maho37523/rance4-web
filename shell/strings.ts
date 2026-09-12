@@ -38,9 +38,29 @@ const dictionary_ja: Dictionary = {
     unrecognized_format: '認識できない形式です。',
 };
 
+const dictionary_zh: Dictionary = {
+    cannot_install: '无法安装',
+    error_occurred: '发生错误。',
+    input_char_limit: (maxLength: number) => `最多输入 ${maxLength} 个字符`,
+    midi_init_error: 'MIDI 合成器初始化失败。',
+    module_load_failed: (src: string) => `加载 ${src} 失败，请刷新页面。`,
+    no_gamedata: '找不到游戏数据（*SA.ALD 或 ADISK.DAT）。',
+    no_gamedata_dir: '镜像中找不到 GAMEDATA 文件夹。',
+    floppy_images_cant_be_used: '无法加载软盘镜像，请使用 Windows 版游戏数据。',
+    pc98_images_cant_be_used: '不支持 PC-98 版游戏，请使用 Windows 版游戏数据。',
+    restart_confirmation: '要重启游戏吗？',
+    restore_success: '存档恢复成功。',
+    restore_failure: '无法恢复存档。',
+    streamer_mode_not_available: '此游戏不支持主播模式。',
+    unload_confirmation: '未保存的数据将会丢失。',
+    unrecognized_format: '无法识别的格式。',
+};
+
 const dicts:{[language: string]: Dictionary} = {
     en: dictionary_en,
-    ja: dictionary_ja
+    ja: dictionary_ja,
+    'zh-CN': dictionary_zh,
+    zh: dictionary_zh,
 };
 
 function selectDictionary(): Dictionary {

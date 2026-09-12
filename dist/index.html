@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,7 +20,7 @@
   <body>
 
   <header id="toolbar" class="before-game-start">
-    <div id="toolbar-handler" class="tooltip tooltip-bottom" data-tooltip="メニュー">
+    <div id="toolbar-handler" class="tooltip tooltip-bottom" data-tooltip="菜单">
       <div class="toolbar-handler-icon"></div>
     </div>
     <div class="navbar">
@@ -29,16 +29,16 @@
       </section>
       <section class="navbar-section">
         <div id="volume-control" class="mr-2 hidden-until-game-start">
-          <i id="volume-control-icon" class="fa fa-volume-up tooltip tooltip-bottom" data-tooltip="ミュート (m)"></i>
+          <i id="volume-control-icon" class="fa fa-volume-up tooltip tooltip-bottom" data-tooltip="静音 (m)"></i>
           <input id="volume-control-slider" type="range" class="tooltip tooltip-bottom" data-tooltip="音量">
         </div>
 
-        <button id="restart-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start hidden-in-narrow-screen" data-tooltip="再起動 (r)"><i class="fa fa-refresh"></i></button>
-        <button id="screenshot-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start hidden-in-narrow-screen" data-tooltip="スクリーンショット (p)"><i class="fa fa-camera"></i></button>
-        <button id="msgskip-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start" data-tooltip="スキップ (s)"><i class="fa fa-forward"></i></button>
-        <button id="textlog-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start" data-tooltip="テキスト履歴 (l)"><i class="fa fa-history"></i></button>
-        <button id="settings-button" class="btn btn-link tooltip tooltip-bottom mr-2" data-tooltip="設定"><i class="fa fa-cog"></i></button>
-        <a class="btn btn-link tooltip tooltip-bottom" target="_blank" href="help/" data-tooltip="ヘルプ"><i class="fa fa-question-circle mr-2"></i></a>
+        <button id="restart-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start hidden-in-narrow-screen" data-tooltip="重启 (r)"><i class="fa fa-refresh"></i></button>
+        <button id="screenshot-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start hidden-in-narrow-screen" data-tooltip="截图 (p)"><i class="fa fa-camera"></i></button>
+        <button id="msgskip-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start" data-tooltip="跳过 (s)"><i class="fa fa-forward"></i></button>
+        <button id="textlog-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start" data-tooltip="文本记录 (l)"><i class="fa fa-history"></i></button>
+        <button id="settings-button" class="btn btn-link tooltip tooltip-bottom mr-2" data-tooltip="设置"><i class="fa fa-cog"></i></button>
+        <a class="btn btn-link tooltip tooltip-bottom" target="_blank" href="help/" data-tooltip="帮助"><i class="fa fa-question-circle mr-2"></i></a>
         <button id="toolbar-close-button" class="btn btn-link"><i class="fa fa-angle-up"></i></button>
       </section>
     </div>
@@ -63,7 +63,7 @@
       <div class="show-while-loading loading loading-lg" hidden></div>
 
       <div id="unsupported" hidden>
-	このブラウザでは利用できません。
+	此浏览器不支持此功能。
       </div>
     </div>
 
@@ -76,102 +76,102 @@
   <!-- Settings -->
   <dialog id="settings" class="modal-container">
     <div class="modal-header">
-      <div class="modal-title">設定</div>
+      <div class="modal-title">设置</div>
     </div>
     <div class="modal-body settings">
       <section>
-        <h5>表示</h5>
+        <h5>显示</h5>
         <div class="form-group">
-          <span class="mr-2">拡大率:</span>
+          <span class="mr-2">缩放比例：</span>
           <select id="zoom" class="form-select">
             <option value="1">100%</option>
             <option value="1.25">125%</option>
             <option value="1.5">150%</option>
             <option value="2">200%</option>
             <option value="3">300%</option>
-            <option value="fit">自動</option>
+            <option value="fit">自动适配</option>
           </select>
         </div>
         <div>
           <label for="pixelate" class="form-checkbox">
             <input type="checkbox" id="pixelate">
-            <i class="form-icon"></i>拡大時に補間しない
+            <i class="form-icon"></i>放大时不进行插值
           </label>
         </div>
         <div>
           <label for="antialias" class="form-checkbox">
             <input type="checkbox" id="antialias" checked>
-            <i class="form-icon"></i>文字をなめらかに表示する
+            <i class="form-icon"></i>平滑显示文字
           </label>
         </div>
       </section>
       <div class="divider"></div>
       <section>
-        <h5>メッセージスキップ</h5>
+        <h5>文本跳过</h5>
         <div>
           <label for="msgskip-skip-unseen" class="form-checkbox">
             <input type="checkbox" id="msgskip-skip-unseen">
-            <i class="form-icon"></i>未読メッセージもスキップする
+            <i class="form-icon"></i>跳过未读文本
           </label>
         </div>
         <div>
           <label for="msgskip-stop-on-unseen" class="form-checkbox">
             <input type="checkbox" id="msgskip-stop-on-unseen">
-            <i class="form-icon"></i>未読メッセージで解除する
+            <i class="form-icon"></i>遇到未读文本时停止
           </label>
         </div>
         <div>
           <label for="msgskip-stop-on-menu" class="form-checkbox">
             <input type="checkbox" id="msgskip-stop-on-menu">
-            <i class="form-icon"></i>選択肢で解除する
+            <i class="form-icon"></i>遇到选项时停止
           </label>
         </div>
         <div>
           <label for="msgskip-stop-on-click" class="form-checkbox">
             <input type="checkbox" id="msgskip-stop-on-click">
-            <i class="form-icon"></i>クリックで解除する
+            <i class="form-icon"></i>点击时停止
           </label>
         </div>
       </section>
       <div class="divider"></div>
       <section>
-        <h5>一般</h5>
+        <h5>通用</h5>
         <div>
           <label for="unload-confirmation" class="form-checkbox">
             <input type="checkbox" id="unload-confirmation">
-            <i class="form-icon"></i>ページを閉じる前に確認する
+            <i class="form-icon"></i>关闭页面前确认
           </label>
         </div>
         <div>
           <label for="streamer-mode" class="form-checkbox">
             <input type="checkbox" id="streamer-mode">
-            <i class="form-icon"></i>配信者モード（18禁画像にモザイク）
+            <i class="form-icon"></i>主播模式（对成人图片打码）
           </label>
         </div>
       </section>
       <div class="divider"></div>
       <section>
-        <h5>セーブデータ</h5>
+        <h5>存档数据</h5>
         <div>
-          <button id="downloadSaveData" class="btn mr-2" disabled>ZIPに保存</button>
-          <button id="uploadSaveData" class="btn">ZIPから復元</button>
+          <button id="downloadSaveData" class="btn mr-2" disabled>保存为 ZIP</button>
+          <button id="uploadSaveData" class="btn">从 ZIP 恢复</button>
         </div>
       </section>
     </div>
     <div class="modal-footer">
-      <button id="settings-close" class="btn btn-primary">OK</button>
+      <button id="settings-close" class="btn btn-primary">确定</button>
     </div>
   </dialog>
 
   <!-- Text log -->
   <dialog id="textlog" class="modal-container">
     <div class="modal-header">
-      <div class="modal-title">テキスト履歴</div>
+      <div class="modal-title">文本记录</div>
     </div>
     <pre id="textlog-content" class="modal-body">
     </pre>
     <div class="modal-footer">
-      <button id="textlog-close" class="btn btn-primary">閉じる</button>
+      <button id="textlog-close" class="btn btn-primary">关闭</button>
     </div>
   </dialog>
 

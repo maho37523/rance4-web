@@ -25,19 +25,33 @@ async function copyGame(id, source) {
   await rm(destination, { recursive: true, force: true });
   await mkdir(destination, { recursive: true });
 
+  const publicEntries = [];
   for (const entry of entries) {
     const sourcePath = join(source, entry.name);
-    const destinationPath = join(destination, entry.name);
+    // GitHub Pages/Jekyll can omit dot-prefixed files from a published site.
+    // Keep the original name in the manifest, but publish this launcher file
+    // under a safe URL name and restore its logical name in autostart.js.
+    const publicName = entry.name === '.xsys35rc' ? '__xsys35rc' : entry.name;
+    const destinationPath = join(destination, publicName);
     // The launcher needs root files and BGM tracks only. System 3 hint disks
     // include a second ADISK.dat and therefore stay outside public output.
     if (entry.isFile() || (entry.isDirectory() && entry.name.toLowerCase() === 'bgm')) {
       await cp(sourcePath, destinationPath, { recursive: entry.isDirectory() });
+      if (entry.isFile()) {
+        publicEntries.push({
+          path: entry.name,
+          publicPath: publicName,
+        });
+      } else {
+        const files = await listFiles(destination, publicName);
+        for (const file of files) publicEntries.push({ path: file, publicPath: file });
+      }
     }
   }
 
-  const files = (await listFiles(destination)).sort();
-  await writeFile(join(destination, 'manifest.json'), JSON.stringify({ id, files }, null, 2) + '\n');
-  console.log(`${id}: ${files.length} files`);
+  publicEntries.sort((a, b) => a.path.localeCompare(b.path));
+  await writeFile(join(destination, 'manifest.json'), JSON.stringify({ id, files: publicEntries }, null, 2) + '\n');
+  console.log(`${id}: ${publicEntries.length} files`);
 }
 
 await mkdir(outputRoot, { recursive: true });
