@@ -2,7 +2,7 @@
 // This source code is governed by the MIT License, see the LICENSE file.
 import {$} from './util.js';
 import {config} from './config.js';
-import {LoaderSource, CDImageSource, FileSource, ZipSource, SevenZipSource, NoGamedataError} from './loadersource.js';
+import {LoaderSource, CDImageSource, FileSource, RemoteCDDAFileSource, ZipSource, SevenZipSource, NoGamedataError} from './loadersource.js';
 import {setCDDALoader} from './cdda.js';
 import {addToast} from './widgets.js';
 import * as midiPlayer from './midi.js';
@@ -13,10 +13,25 @@ import { isDeflateSupported } from './zip.js';
 let cdSource: CDImageSource | undefined;
 let installing = false;
 
+export const REMOTE_LOAD_EVENT = 'load-remote-files';
+export interface RemoteLoadDetail {
+    files: File[];
+    imageUrl: string;
+    cueUrl: string;
+}
+
 function init() {
     $('#fileselect').addEventListener('change', handleFileSelect, false);
+    document.addEventListener(REMOTE_LOAD_EVENT, handleRemoteLoad as EventListener, false);
     document.body.ondragover = handleDragOver;
     document.body.ondrop = handleDrop;
+}
+
+function handleRemoteLoad(evt: Event) {
+    const detail = (evt as CustomEvent<RemoteLoadDetail>).detail;
+    if (installing || !detail || !Array.isArray(detail.files) || !detail.imageUrl || !detail.cueUrl)
+        return;
+    install(new RemoteCDDAFileSource(detail.files, detail.imageUrl, detail.cueUrl));
 }
 
 function handleFileSelect(evt: Event) {

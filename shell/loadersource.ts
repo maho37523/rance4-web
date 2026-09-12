@@ -248,6 +248,29 @@ export class FileSource extends LoaderSource {
     }
 }
 
+/** Game files that have already been downloaded, with CDDA hosted remotely. */
+export class RemoteCDDAFileSource extends LoaderSource {
+    private cddaReader!: cdimage.Reader;
+
+    constructor(private readonly files: File[], private readonly imageUrl: string,
+                private readonly cueUrl: string) {
+        super();
+    }
+
+    protected async doLoad() {
+        this.cddaReader = await cdimage.createRemoteReader(this.imageUrl, this.cueUrl);
+        const entries: GameFileEntry[] = this.files.map((file) => ({
+            name: file.name,
+            load: async () => [new Uint8Array(await file.arrayBuffer())],
+        }));
+        await this.installGameFiles(entries);
+    }
+
+    createCDDALoader(): CDDALoader {
+        return new CDDALoader(this.cddaReader);
+    }
+}
+
 export class ZipSource extends LoaderSource {
     private tracks = new CDDATracks<zip.ZipFile>();
 
