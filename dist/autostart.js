@@ -73,7 +73,7 @@ async function startRanceKing() {
       files.push(new File([await fileResponse.blob()], entry.path.split('/').pop()));
     }
     document.dispatchEvent(new CustomEvent('load-remote-files', {
-      detail: {files, imageUrl: remote.imageUrl, cueUrl: remote.cueUrl},
+      detail: {files, imageUrl: remote.imageUrl, cueUrl: remote.cueUrl, encoding: 'gbk'},
     }));
   } catch (error) {
     status.textContent = `加载失败：${error instanceof Error ? error.message : error}`;

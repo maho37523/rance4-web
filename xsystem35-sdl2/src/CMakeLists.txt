@@ -183,7 +183,7 @@ if (EMSCRIPTEN)
     -sALLOW_MEMORY_GROWTH=1
     -sNO_EXIT_RUNTIME=1
     -sEXPORTED_FUNCTIONS=_main,_malloc
-    -sEXPORTED_RUNTIME_METHODS=FS,IDBFS,HEAPU8,HEAP16,getValue,addRunDependency,removeRunDependency,stringToUTF8OnStack
+    -sEXPORTED_RUNTIME_METHODS=FS,IDBFS,HEAPU8,HEAP16,getValue,addRunDependency,removeRunDependency,stringToUTF8,stringToUTF8OnStack
     --emit-tsd=xsystem35.d.ts
     )
 
@@ -208,6 +208,7 @@ else()  # non-emscripten, non-android
     hankaku_test.c
     qnt_test.c
     variable_test.c
+    utfsjis_test.c
     )
   target_compile_options(src_tests PRIVATE -Wno-pointer-sign -Wall)
   target_compile_definitions(src_tests PRIVATE

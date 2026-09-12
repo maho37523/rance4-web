@@ -88,6 +88,7 @@ static char fontface[FONTTYPEMAX];
 static const char *savedir;
 static bool font_noantialias;
 static bool integer_scaling = false;
+static CharacterEncoding startup_encoding = SHIFT_JIS;
 /* fullscreen on from command line */
 static bool fs_on;
 
@@ -137,6 +138,7 @@ static void sys35_usage(bool verbose) {
 	puts(" -fullscreen             : start with fullscreen");
 	puts(" -integerscale           : use integer scaling when resizing");
 	puts(" -noimagecursor          : disable image cursor");
+	puts(" -encoding name          : scenario encoding (sjis, utf8, gbk)");
 	puts(" -version                : show version");
 	puts(" -h                      : show this message");
 	puts(" --help                  : show this message");
@@ -149,6 +151,7 @@ static void sys35_init() {
 	sl_init();
 
 	nact_init();
+	sys_setCharacterEncoding(startup_encoding);
 
 	v_init();
 	
@@ -287,6 +290,19 @@ static void sys35_ParseOption(int *argc, char **argv) {
 		} else if (0 == strcmp(argv[i], "-game")) {
 			if (argv[i + 1] != NULL) {
 				enable_hack_by_gameid(argv[i + 1]);
+			}
+		} else if (0 == strcmp(argv[i], "-encoding")) {
+			if (argv[i + 1] != NULL) {
+				if (!strcasecmp(argv[i + 1], "gbk") || !strcasecmp(argv[i + 1], "cp936"))
+					startup_encoding = GBK;
+				else if (!strcasecmp(argv[i + 1], "utf8") || !strcasecmp(argv[i + 1], "utf-8"))
+					startup_encoding = UTF8;
+				else if (!strcasecmp(argv[i + 1], "sjis") || !strcasecmp(argv[i + 1], "shift_jis") || !strcasecmp(argv[i + 1], "cp932"))
+					startup_encoding = SHIFT_JIS;
+				else {
+					fprintf(stderr, "xsystem35: Invalid encoding '%s'\n", argv[i + 1]);
+					sys35_usage(false);
+				}
 			}
 		} else if (0 == strcmp(argv[i], "-saveformat")) {
 			if (argv[i + 1] != NULL) {

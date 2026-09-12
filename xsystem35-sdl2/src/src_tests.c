@@ -26,6 +26,7 @@ void gameresource_test(void);
 void hankaku_test(void);
 void qnt_test(void);
 void variable_test(void);
+void utfsjis_test(void);
 
 void sys_error(char *format, ...) {
 	va_list args;
@@ -49,5 +50,6 @@ int main() {
 	variable_test();
 	hankaku_test();
 	qnt_test();
+	utfsjis_test();
 	return 0;
 }

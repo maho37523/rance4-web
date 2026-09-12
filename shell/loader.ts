@@ -18,7 +18,12 @@ export interface RemoteLoadDetail {
     files: File[];
     imageUrl: string;
     cueUrl: string;
+    /** Explicitly selected by a trusted game manifest; never inferred from
+     * arbitrary user input. */
+    encoding?: 'sjis' | 'gbk' | 'utf8';
 }
+
+let gameEncoding: RemoteLoadDetail['encoding'];
 
 function init() {
     $('#fileselect').addEventListener('change', handleFileSelect, false);
@@ -31,6 +36,7 @@ function handleRemoteLoad(evt: Event) {
     const detail = (evt as CustomEvent<RemoteLoadDetail>).detail;
     if (installing || !detail || !Array.isArray(detail.files) || !detail.imageUrl || !detail.cueUrl)
         return;
+    gameEncoding = detail.encoding;
     install(new RemoteCDDAFileSource(detail.files, detail.imageUrl, detail.cueUrl));
 }
 
@@ -83,6 +89,11 @@ async function handleDirectory(entry: FileSystemDirectoryEntry) {
 function handleFiles(files: FileList | File[]) {
     if (installing || files.length === 0)
         return;
+
+    // A remote launcher may select a legacy encoding explicitly.  Local
+    // imports must retain the engine default instead of inheriting that
+    // selection if a page instance is reused.
+    gameEncoding = undefined;
 
     let hasALD = false;
     let patchFiles: File[] = [];
@@ -173,6 +184,8 @@ function loaded(hasMidi: boolean) {
     setTimeout(() => {
         Module!.arguments.push(config.antialias ? '-antialias' : '-noantialias');
         Module!.arguments.push('-fm');
+        if (gameEncoding)
+            Module!.arguments.push('-encoding', gameEncoding);
         Module!.removeRunDependency('gameFiles');
         document.dispatchEvent(new Event('gamestart'));
     }, 0);

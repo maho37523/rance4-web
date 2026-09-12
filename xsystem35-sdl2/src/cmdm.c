@@ -55,6 +55,7 @@ void commandMP() {
 	const char *fullwidth_blank[CHARACTER_ENCODING_MAX + 1] = {
 		[SHIFT_JIS] = "\x81\x40",
 		[UTF8] = "　",
+		[GBK] = "\xa1\xa1",
 	};
 	const char *src = svar_get(num1);
 	int chars = num2;

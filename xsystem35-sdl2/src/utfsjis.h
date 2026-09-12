@@ -29,13 +29,16 @@
 typedef enum {
 	SHIFT_JIS,
 	UTF8,
-	CHARACTER_ENCODING_MAX = UTF8
+	GBK,
+	CHARACTER_ENCODING_MAX = GBK
 } CharacterEncoding;
 
 #define MAX_SJIS_BYTES_PAR_CHAR 2
 #define MAX_UTF8_BYTES_PAR_CHAR 4
+#define MAX_GBK_BYTES_PAR_CHAR 2
 #define MAX_BYTES_PAR_CHAR(encoding) \
-	((encoding) == SHIFT_JIS ? MAX_SJIS_BYTES_PAR_CHAR : MAX_UTF8_BYTES_PAR_CHAR)
+	((encoding) == SHIFT_JIS ? MAX_SJIS_BYTES_PAR_CHAR : \
+	 ((encoding) == GBK ? MAX_GBK_BYTES_PAR_CHAR : MAX_UTF8_BYTES_PAR_CHAR))
 
 #define UTF8_TRAIL_BYTE(b) ((signed char)(b) < -0x40)
 #define CHECKSJIS1BYTE(b) ( ((b) & 0xe0) == 0x80 || ((b) & 0xe0) == 0xe0 )
@@ -46,6 +49,8 @@ extern char* codeconv(CharacterEncoding tocode,
 
 extern uint8_t* sjis2utf(const uint8_t *src);
 extern uint8_t* utf2sjis(const uint8_t *src);
+extern uint8_t* gbk2utf(const uint8_t *src);
+extern uint8_t* utf2gbk(const uint8_t *src);
 extern bool sjis_has_hankaku(const uint8_t *src);
 extern bool sjis_has_zenkaku(const uint8_t *src);
 extern int     utf8_next_codepoint(const char **msg);

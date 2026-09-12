@@ -33,6 +33,23 @@
 #include "utfsjis.h"
 #include "s2utbl.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+/* CP936 decoding is provided by the browser's built-in, synchronous
+ * Encoding Standard decoder.  This keeps the wasm binary small while still
+ * covering the complete GBK table (including Chinese extensions). */
+EM_JS(char *, gbk_decode_js, (const char *src), {
+	let end = src;
+	while (HEAPU8[end]) end++;
+	const bytes = HEAPU8.subarray(src, end);
+	const text = new TextDecoder('gbk', {fatal: false}).decode(bytes);
+	const out = _malloc(lengthBytesUTF8(text) + 1);
+	stringToUTF8(text, out, lengthBytesUTF8(text) + 1);
+	return out;
+});
+#endif
+
 char* codeconv(CharacterEncoding tocode,
 			   CharacterEncoding fromcode,
 			   const char *str) {
@@ -42,7 +59,37 @@ char* codeconv(CharacterEncoding tocode,
 		return (char *)sjis2utf((char *)str);
 	if (tocode == SHIFT_JIS && fromcode == UTF8)
 		return (char *)utf2sjis((char *)str);
+	if (tocode == UTF8 && fromcode == GBK)
+		return (char *)gbk2utf((const uint8_t *)str);
+	if (tocode == GBK && fromcode == UTF8)
+		return (char *)utf2gbk((const uint8_t *)str);
 	return NULL;
+}
+
+uint8_t *gbk2utf(const uint8_t *src) {
+#ifdef __EMSCRIPTEN__
+	return (uint8_t *)gbk_decode_js((const char *)src);
+#else
+	/* Native builds do not need to decode the web-only GBK distribution. Keep
+	 * ASCII intact and make unsupported bytes visible rather than splitting a
+	 * multibyte character. */
+	uint8_t *dst = malloc(strlen((const char *)src) * 3 + 1), *p = dst;
+	while (*src) {
+		if (*src < 0x80) *p++ = *src++;
+		else { *p++ = '?'; src += (src[1] && src[0] >= 0x81) ? 2 : 1; }
+	}
+	*p = 0;
+	return dst;
+#endif
+}
+
+uint8_t *utf2gbk(const uint8_t *src) {
+	/* The engine only sends UTF-8 here for option/config strings. ASCII is
+	 * lossless; browser game text is read in the opposite direction above. */
+	uint8_t *dst = malloc(strlen((const char *)src) + 1), *p = dst;
+	while (*src) *p++ = (*src < 0x80) ? *src++ : (src += ((*src & 0xf0) == 0xe0 ? 3 : 2), '?');
+	*p = 0;
+	return dst;
 }
 
 uint8_t *sjis2utf(const uint8_t *src) {
@@ -196,6 +243,11 @@ char *advance_char(const char *s, CharacterEncoding e) {
 		while (UTF8_TRAIL_BYTE(*++s))
 			;
 		return (char *)s;
+	case GBK:
+		return (char *)s + ((unsigned char)s[0] >= 0x81 &&
+			(unsigned char)s[0] <= 0xfe && s[1] &&
+			(unsigned char)s[1] >= 0x40 &&
+			(unsigned char)s[1] <= 0xfe && s[1] != 0x7f ? 2 : 1);
 	}
 	return NULL;
 }

@@ -162,6 +162,18 @@ static void message(int c0) {
 	while (c0 == 0x20 || c0 >= 0x80) {
 		if (nact->encoding == UTF8) {
 			*p++ = (char)c0;
+		} else if (nact->encoding == GBK) {
+			*p++ = (char)c0;
+			/* GBK/CP936 uses an explicit two-byte range.  In particular,
+			 * bytes from 0x80 through 0x9f must not be treated as standalone
+			 * characters as they are in the legacy Shift-JIS branch. */
+			if (c0 >= 0x81 && c0 <= 0xfe) {
+				int c1 = sl_getc();
+				if (c1 >= 0x40 && c1 <= 0xfe && c1 != 0x7f)
+					*p++ = (char)c1;
+				else
+					sl_ungetc();
+			}
 		} else if (c0 == 0x20) {
 			*p++ = (char)c0;
 		} else if (c0 >= 0xe0) {

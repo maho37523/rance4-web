@@ -285,6 +285,8 @@ void msg_hitAnyKey() {
 	const char *prompt[CHARACTER_ENCODING_MAX + 1] = {
 		[SHIFT_JIS] = "\x81\xa5",
 		[UTF8] = "▼",
+		/* GBK bytes for U+25BC BLACK DOWN-POINTING TRIANGLE. */
+		[GBK] = "\xa8\x8b",
 	};
 	
 	SDL_Rect r;
