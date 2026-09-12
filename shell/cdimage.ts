@@ -9,36 +9,121 @@ export interface Reader {
     extractTrack(track: number): Promise<Blob>;
 }
 
+/** A byte-addressable image. `end` is exclusive, like Blob.slice(). */
+export interface RangeImage {
+    readonly size: number;
+    readBlob(start: number, end: number): Promise<Blob>;
+    slice(start: number, end: number): Promise<Blob>;
+}
+
+class FileRangeImage implements RangeImage {
+    constructor(private readonly file: File) { }
+
+    get size(): number { return this.file.size; }
+
+    readBlob(start: number, end: number): Promise<Blob> {
+        return Promise.resolve(this.file.slice(start, end));
+    }
+
+    slice(start: number, end: number): Promise<Blob> {
+        return this.readBlob(start, end);
+    }
+}
+
+/** A remote image reader which never downloads the whole image. */
+class RemoteRangeImage implements RangeImage {
+    private constructor(private readonly url: string, public readonly size: number) { }
+
+    static async open(url: string): Promise<RemoteRangeImage> {
+        const response = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+        if (response.status !== 206)
+            throw new Error(`Remote image does not support HTTP Range (status ${response.status})`);
+        const initialRange = parseContentRange(response.headers.get('Content-Range'));
+        const size = initialRange?.start === 0 && initialRange.end === 0 ? initialRange.size : null;
+        if (size === null)
+            throw new Error('Remote image has no usable Content-Range');
+        if (size < 0 || !Number.isSafeInteger(size))
+            throw new Error('Remote image has an invalid size');
+        return new RemoteRangeImage(url, size);
+    }
+
+    async readBlob(start: number, end: number): Promise<Blob> {
+        if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start || end > this.size)
+            throw new Error(`Invalid image range ${start}-${end}`);
+        if (start === end)
+            return new Blob();
+
+        const response = await fetch(this.url, {
+            headers: { Range: `bytes=${start}-${end - 1}` },
+        });
+        if (response.status !== 206)
+            throw new Error(`Remote image range request failed (status ${response.status})`);
+        const contentRange = parseContentRange(response.headers.get('Content-Range'));
+        if (!contentRange || contentRange.start !== start || contentRange.end !== end - 1 || contentRange.size !== this.size)
+            throw new Error('Remote image returned an invalid Content-Range');
+        const blob = await response.blob();
+        if (blob.size !== end - start)
+            throw new Error(`Remote image returned ${blob.size} bytes, expected ${end - start}`);
+        return blob;
+    }
+
+    slice(start: number, end: number): Promise<Blob> {
+        return this.readBlob(start, end);
+    }
+}
+
+function parseContentRange(value: string | null): { start: number; end: number; size: number } | null {
+    const match = value?.match(/^bytes (\d+)-(\d+)\/(\d+)$/);
+    if (!match) return null;
+    const start = Number(match[1]);
+    const end = Number(match[2]);
+    const size = Number(match[3]);
+    return Number.isSafeInteger(start) && Number.isSafeInteger(end) && Number.isSafeInteger(size)
+        ? { start, end, size } : null;
+}
+
 export async function createReader(img: File, metadata?: File): Promise<Reader> {
+    const image = new FileRangeImage(img);
     if (img.name.toLowerCase().endsWith('.iso')) {
-        return new IsoReader(img);
+        return new IsoReader(image);
     } else if (!metadata) {
         throw new Error('No metadata file');
     } else if (metadata.name.toLowerCase().endsWith('.cue')) {
-        let reader = new ImgCueReader(img);
+        let reader = new ImgCueReader(image);
         await reader.parseCue(metadata);
         return reader;
     } else if (metadata.name.toLowerCase().endsWith('.ccd')) {
-        let reader = new ImgCueReader(img);
+        let reader = new ImgCueReader(image);
         await reader.parseCcd(metadata);
         return reader;
     } else {
-        let reader = new MdfMdsReader(img);
+        let reader = new MdfMdsReader(image);
         await reader.parseMds(metadata);
         return reader;
     }
 }
 
-class IsoReader implements Reader {
-    constructor(public image: File) { }
+/** Create a reader backed by a remote CD image and a remotely hosted CUE file. */
+export async function createRemoteReader(imageUrl: string, cueUrl: string): Promise<Reader> {
+    const image = await RemoteRangeImage.open(imageUrl);
+    const response = await fetch(cueUrl);
+    if (!response.ok)
+        throw new Error(`Unable to load remote CUE file (status ${response.status})`);
+    const reader = new ImgCueReader(image);
+    await reader.parseCueText(await response.text(), cueUrl);
+    return reader;
+}
 
-    readSector(sector: number): Promise<ArrayBuffer> {
-        return this.image.slice(sector * 2048, (sector + 1) * 2048).arrayBuffer();
+class IsoReader implements Reader {
+    constructor(public image: RangeImage) { }
+
+    async readSector(sector: number): Promise<ArrayBuffer> {
+        return (await this.image.readBlob(sector * 2048, (sector + 1) * 2048)).arrayBuffer();
     }
 
     async readSequentialSectors(startSector: number, length: number): Promise<Uint8Array[]> {
         let start = startSector * 2048;
-        let buf = await this.image.slice(start, start + length).arrayBuffer();
+        let buf = await (await this.image.readBlob(start, start + length)).arrayBuffer();
         return [new Uint8Array(buf)];
     }
 
@@ -56,7 +141,7 @@ class IsoReader implements Reader {
 }
 
 async function readSequential(
-    image: File,
+    image: RangeImage,
     startOffset: number,
     bytesToRead: number,
     blockSize: number,
@@ -64,7 +149,7 @@ async function readSequential(
     sectorOffset: number
 ): Promise<Uint8Array<ArrayBuffer>[]> {
     let sectors = Math.ceil(bytesToRead / sectorSize);
-    let buf = await image.slice(startOffset, startOffset + sectors * blockSize).arrayBuffer();
+    let buf = await (await image.readBlob(startOffset, startOffset + sectors * blockSize)).arrayBuffer();
     if (sectorSize === blockSize) {
         return [new Uint8Array(buf, 0, bytesToRead)];
     }
@@ -95,7 +180,7 @@ interface CueTrack {
 class ImgCueReader implements Reader {
     private tracks: Array<TrackInfo | undefined> = [];
 
-    constructor(private img: File) {}
+    constructor(private img: RangeImage) {}
 
     async readSector(sector: number): Promise<ArrayBuffer> {
         const track = this.findTrack(sector);
@@ -103,7 +188,7 @@ class ImgCueReader implements Reader {
             throw new Error('Invalid sector ' + sector);
         }
         let offset = track.offset + (sector - track.startSector) * track.blockSize + track.blockOffset;
-        return await this.img.slice(offset, offset + 2048).arrayBuffer();
+        return await (await this.img.readBlob(offset, offset + 2048)).arrayBuffer();
     }
 
     async readSequentialSectors(startSector: number, length: number): Promise<Uint8Array[]> {
@@ -116,7 +201,11 @@ class ImgCueReader implements Reader {
     }
 
     async parseCue(cueFile: File) {
-        let lines = (await cueFile.text()).split('\n');
+        await this.parseCueText(await cueFile.text(), cueFile.name);
+    }
+
+    async parseCueText(text: string, sourceName: string) {
+        let lines = text.split('\n');
         let currentTrack: number | null = null;
         const tracks: CueTrack[] = [];
         for (let line of lines) {
@@ -135,7 +224,7 @@ class ImgCueReader implements Reader {
                             tracks[currentTrack] = { isAudio: true, blockSize: 2352, blockOffset: 0, index: [] };
                             break;
                         default:
-                            throw new Error(`${cueFile.name}: Unsupported track mode "${fields[2]}"`);
+                            throw new Error(`${sourceName}: Unsupported track mode "${fields[2]}"`);
                     }
                     break;
                 case 'INDEX':
@@ -217,7 +306,7 @@ class ImgCueReader implements Reader {
             throw new Error('Invalid track ' + trk);
 
         const size = track.numSectors * track.blockSize;
-        const blob = this.img.slice(track.offset, track.offset + size);
+        const blob = await this.img.readBlob(track.offset, track.offset + size);
         return createWaveFile(44100, 2, size, [blob]);
     }
 
@@ -242,7 +331,7 @@ enum MdsTrackMode { Audio = 0xa9, Mode1 = 0xaa }
 class MdfMdsReader implements Reader {
     private tracks: Array<{ mode: number; sectorSize: number; offset: number; sectors: number; }> = [];
 
-    constructor(private mdf: File) {}
+    constructor(private mdf: RangeImage) {}
 
     async parseMds(mdsFile: File) {
         let buf = await mdsFile.arrayBuffer();
@@ -271,10 +360,10 @@ class MdfMdsReader implements Reader {
             throw new Error('track 1 is not mode1');
     }
 
-    readSector(sector: number): Promise<ArrayBuffer> {
+    async readSector(sector: number): Promise<ArrayBuffer> {
         let start = sector * this.tracks[1].sectorSize + 16;
         let end = start + 2048;
-        return this.mdf.slice(start, end).arrayBuffer();
+        return (await this.mdf.readBlob(start, end)).arrayBuffer();
     }
 
     readSequentialSectors(startSector: number, length: number): Promise<Uint8Array[]> {
