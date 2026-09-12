@@ -24,6 +24,23 @@ export interface RemoteLoadDetail {
 }
 
 let gameEncoding: RemoteLoadDetail['encoding'];
+const GBK_FONT_FILE = 'SourceHanSansCN-Normal.otf';
+
+async function prepareGbkFont(): Promise<boolean> {
+    try {
+        const url = new URL(`games/rance4/${GBK_FONT_FILE}`, document.baseURI);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        Module!.FS.writeFile(`/fonts/${GBK_FONT_FILE}`, new Uint8Array(await response.arrayBuffer()));
+        return true;
+    } catch (error) {
+        // The engine can still start with its bundled font; keep the game
+        // reachable rather than leaving its run dependency unresolved.
+        console.warn('Unable to load the GBK fallback font:', error);
+        addToast('中文字体加载失败，部分文字可能无法显示。', 'warning');
+        return false;
+    }
+}
 
 function init() {
     $('#fileselect').addEventListener('change', handleFileSelect, false);
@@ -181,11 +198,16 @@ function loaded(hasMidi: boolean) {
     document.body.classList.add('game');
     $('#toolbar').classList.remove('before-game-start');
     window.onbeforeunload = onBeforeUnload;
-    setTimeout(() => {
+    setTimeout(async () => {
         Module!.arguments.push(config.antialias ? '-antialias' : '-noantialias');
         Module!.arguments.push('-fm');
-        if (gameEncoding)
+        if (gameEncoding) {
             Module!.arguments.push('-encoding', gameEncoding);
+            if (gameEncoding === 'gbk' && await prepareGbkFont()) {
+                Module!.arguments.push('-ttfont_gothic', `/fonts/${GBK_FONT_FILE}`);
+                Module!.arguments.push('-ttfont_mincho', `/fonts/${GBK_FONT_FILE}`);
+            }
+        }
         Module!.removeRunDependency('gameFiles');
         document.dispatchEvent(new Event('gamestart'));
     }, 0);
