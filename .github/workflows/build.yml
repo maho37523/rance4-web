@@ -36,6 +36,23 @@ jobs:
         npm run type
         npm run build
 
-    # Game data is deliberately absent from source control. A release runs
-    # `npm run build-public` with the authorized local source data, then
-    # publishes the resulting static artifact through the hosting project.
+    # The checked-in static release is independently published by deploy_pages.
+
+  deploy_pages:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
