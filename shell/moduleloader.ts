@@ -26,7 +26,13 @@ export async function loadModule(name: 'system3' | 'xsystem35'): Promise<any> {
         arguments: [],
         canvas: document.getElementById('canvas') as HTMLCanvasElement,
         print: console.log.bind(console),
-        printErr: console.error.bind(console),
+        printErr: (...args: unknown[]) => {
+            console.error(...args);
+            // Emscripten sends native fatal diagnostics to stderr, not to the
+            // browser exception message. Surface it while diagnosing remote
+            // game startup failures.
+            addToast(args.map(String).join(' '), 'error');
+        },
         preRun: [
             (m: EmscriptenModule) => {
                 window.Module = m;
