@@ -1,0 +1,5 @@
+name = "ranceking-archive-proxy"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# This worker intentionally has no R2 binding and no secrets.
