@@ -41,10 +41,10 @@ The complete site is in `dist`. You can serve it locally with:
 npm run local
 ```
 
-`dist/games/` is intentionally excluded from Git: it is a deployable game-data
-artifact generated from the local source directories. The public deployment
-archive includes it. See [PUBLIC_DEPLOYMENT.md](PUBLIC_DEPLOYMENT.md) for the
-release procedure and [NOTICE.md](NOTICE.md) for the distribution notice.
+`dist/games/` is generated from the local source directories by
+`npm run build-public` and is included in the public release source and static
+site. See [PUBLIC_DEPLOYMENT.md](PUBLIC_DEPLOYMENT.md) for the release
+procedure and [NOTICE.md](NOTICE.md) for the distribution notice.
 
 ## Licenses
 Code in the `shell/` and `fslib/` directories is licensed under the

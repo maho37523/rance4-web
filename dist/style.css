@@ -1,0 +1,380 @@
+@charset "UTF-8";
+
+/* css/toolbar.css */
+header {
+  background-color: rgb(69, 77, 93);
+  color: #ccc;
+}
+#toolbar-handler {
+  display: none;
+}
+#toolbar-handler .toolbar-handler-icon {
+  width: 5px;
+  height: 5px;
+  margin: auto;
+  border: solid #ccc;
+  border-width: 2px 2px 0 0;
+  -webkit-transform: rotate(135deg);
+  transform: rotate(135deg);
+}
+#toolbar-close-button {
+  display: none;
+}
+@media all and (max-height: 480px) {
+  header.closeable .navbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    transition: top 0.4s ease;
+    background-color: rgba(69, 77, 93, 0.85);
+  }
+  header.closeable .navbar #toolbar-close-button {
+    display: initial;
+  }
+  header.closeable.closed #toolbar-handler {
+    display: initial;
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    width: 40px;
+    height: 10px;
+    background-color: rgba(69, 77, 93, 0.7);
+  }
+  header.closeable.closed .navbar {
+    top: -44px;
+  }
+}
+@media all and (max-width: 480px) {
+  .hidden-in-narrow-screen {
+    display: none;
+  }
+}
+.navbar {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0.2rem 0;
+  flex-wrap: nowrap;
+}
+.navbar .navbar-center {
+  flex: 1;
+  min-width: 0;
+}
+.navbar .navbar-brand {
+  color: #ccc;
+}
+.navbar .navbar-section {
+  flex: 0;
+}
+.navbar .btn-link {
+  font-size: large;
+  color: #ccc;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.navbar .btn.btn-link:focus,
+.navbar .btn.btn-link:hover,
+.navbar .btn.btn-link:active,
+.navbar .btn.btn-link.active {
+  color: #eee;
+}
+.navbar .btn-link.activated {
+  color: #08f;
+}
+.navbar .btn.btn-link.activated:focus,
+.navbar .btn.btn-link.activated:hover,
+.navbar .btn.btn-link.activated:active,
+.navbar .btn.btn-link.activated.active {
+  color: #05f;
+}
+#volume-control {
+  float: right;
+  white-space: nowrap;
+}
+#volume-control-icon {
+  font-size: 20px;
+  width: 26px;
+  padding: 5px;
+  vertical-align: middle;
+}
+#volume-control-slider {
+  width: 60px;
+  height: 30px;
+  vertical-align: middle;
+}
+
+/* css/loader.css */
+#loader {
+  max-width: 640px;
+  margin: 2ex auto 0;
+}
+#loader h1 {
+  font-size: 1.6rem;
+}
+#loader ul {
+  list-style-type: none;
+}
+#loader li {
+  color: #5764c6;
+}
+#loader li:before {
+  font-family: FontAwesome;
+  content: "\f15b";
+  padding-right: 0.5em;
+}
+#loader li.notready {
+  color: #808080;
+}
+#loader li.notready:after {
+  content: " (unselected)";
+}
+#loader li[lang=ja].notready:after {
+  content: " (\672a\9078\629e)";
+}
+#loader #unsupported {
+  max-width: 640px;
+  margin: 2ex auto 0;
+  color: red;
+}
+#loader .language-selector {
+  text-align: right;
+}
+#loader.module-loading .hidden-while-loading {
+  display: none;
+}
+#loader.module-loading .show-while-loading {
+  display: block;
+}
+
+/* css/style.css */
+body {
+  min-height: 100vh;
+}
+.game-picker {
+  display: grid;
+  gap: .75rem;
+  margin: 1.5rem 0;
+}
+.game-picker .btn {
+  white-space: normal;
+}
+.local-status {
+  min-height: 1.5em;
+}
+body.game {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  min-height: initial;
+  display: flex;
+  flex-direction: column;
+}
+.before-game-start .hidden-until-game-start {
+  display: none;
+}
+.contents {
+  flex: 1;
+  display: flex;
+}
+.bgblack-fade {
+  background-color: black;
+  transition-property: background-color;
+  transition-duration: 1s;
+  transition-timing-function: linear;
+}
+#xsystem35 {
+  margin: auto;
+}
+#xsystem35.fit {
+  margin: 0;
+  flex: 1;
+}
+canvas.emscripten {
+  border: 0px none;
+}
+#xsystem35.fit.pillarbox canvas.emscripten {
+  height: 100%;
+  max-height: 100vh;
+  margin: auto;
+  display: block;
+}
+#xsystem35.fit.letterbox {
+  display: flex;
+  align-items: center;
+}
+#xsystem35.fit.letterbox canvas.emscripten {
+  width: 100%;
+}
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+.modal-container {
+  width: fit-content;
+  border: none;
+  color: inherit;
+}
+.modal-container:not([open]) {
+  display: none;
+}
+dialog::backdrop {
+  background-color: rgba(69, 77, 93, .5);
+}
+.settings section > div {
+  padding-left: 1rem;
+}
+.settings select {
+  width: initial;
+}
+#textlog {
+  max-width: 90vw;
+  background-color: rgba(255, 255, 255, 0.85);
+}
+#textlog pre {
+  margin: 0;
+}
+.toast-container {
+  position: fixed;
+  bottom: 30px;
+  left: 30px;
+  width: 400px;
+  z-index: 500;
+}
+.toast {
+  animation: slide-down .2s ease 1;
+  margin: 5px;
+}
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ripple-animation 250ms linear;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+#touch-controls {
+  display: none;
+}
+@media (orientation: landscape) {
+  body.touch-controls-enabled #toolbar {
+    display: none;
+  }
+  body.touch-controls-enabled #touch-controls {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: block;
+    pointer-events: none;
+    touch-action: none;
+    user-select: none;
+  }
+  body.touch-controls-enabled #touch-input-shield {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+    touch-action: none;
+  }
+  body.touch-controls-enabled .touch-dpad,
+  body.touch-controls-enabled .touch-actions {
+    position: absolute;
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
+    display: grid;
+    gap: 0.35rem;
+    pointer-events: auto;
+  }
+  body.touch-controls-enabled .touch-dpad {
+    left: max(0.65rem, env(safe-area-inset-left));
+    grid-template-columns: repeat(3, 2.5rem);
+    grid-template-areas: ". up ." "left down right";
+  }
+  body.touch-controls-enabled .touch-dpad button:nth-child(1) {
+    grid-area: up;
+  }
+  body.touch-controls-enabled .touch-dpad button:nth-child(2) {
+    grid-area: left;
+  }
+  body.touch-controls-enabled .touch-dpad button:nth-child(3) {
+    grid-area: down;
+  }
+  body.touch-controls-enabled .touch-dpad button:nth-child(4) {
+    grid-area: right;
+  }
+  body.touch-controls-enabled .touch-actions {
+    right: max(0.65rem, env(safe-area-inset-right));
+    grid-template-columns: repeat(2, 2.5rem);
+    grid-template-areas: "cursor menu" "cancel confirm";
+  }
+  body.touch-controls-enabled #touch-cursor-mode {
+    grid-area: cursor;
+  }
+  body.touch-controls-enabled .touch-actions button:nth-child(4) {
+    grid-area: menu;
+  }
+  body.touch-controls-enabled .touch-actions button:nth-child(1) {
+    grid-area: cancel;
+  }
+  body.touch-controls-enabled .touch-actions button:nth-child(2) {
+    grid-area: confirm;
+  }
+  body.touch-controls-enabled .touch-control-button {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 0.55rem;
+    background: rgba(28, 34, 46, 0.82);
+    color: #fff;
+    font: 700 1rem/1 system-ui, sans-serif;
+    box-shadow: 0 0.12rem 0.35rem rgba(0, 0, 0, 0.36);
+    touch-action: none;
+  }
+  body.touch-controls-enabled .touch-control-button:active,
+  body.touch-controls-enabled .touch-control-button.active {
+    background: rgba(67, 107, 184, 0.95);
+    border-color: #d9e8ff;
+  }
+  body.touch-controls-enabled #touch-cursor-mode,
+  body.touch-controls-enabled .touch-actions button:nth-child(4) {
+    font-size: 0.75rem;
+  }
+  body.touch-controls-enabled #touch-cursor {
+    position: fixed;
+    z-index: 2;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: -0.625rem;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: rgba(28, 34, 46, 0.55);
+    box-shadow: 0 0 0 1px #111;
+    pointer-events: none;
+  }
+  body.touch-controls-enabled #xsystem35.fit.pillarbox canvas.emscripten {
+    max-width: calc(100vw - 18rem);
+  }
+}
+@media (orientation: portrait) {
+  body.touch-controls-enabled #touch-controls {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(12, 15, 21, 0.94);
+  }
+  body.touch-controls-enabled #touch-controls::after {
+    content: "\8bf7\6a2a\5c4f\6e38\73a9";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font: 600 1rem/1.5 system-ui, sans-serif;
+  }
+}
+@keyframes ripple-animation {
+  to {
+    transform: scale(1.5);
+    opacity: 0.2;
+  }
+}

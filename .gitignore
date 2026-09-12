@@ -1,5 +1,4 @@
 node_modules/
-dist/games/
 shell/xsystem35.d.ts
 shell/system3.d.ts
 shell/jspi/
