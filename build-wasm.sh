@@ -1,6 +1,13 @@
 #!/bin/sh
 set -e
 
+# Emscripten emits TypeScript declarations while linking.  Prefer the project
+# pinned compiler so a global `tsc` is never required.
+if [ -x "node_modules/.bin/tsc" ]; then
+    PATH="$PWD/node_modules/.bin:$PATH"
+    export PATH
+fi
+
 if [ ! -f "xsystem35-sdl2/CMakeLists.txt" ] || [ ! -f "system3-sdl2/CMakeLists.txt" ]; then
     git submodule update --init --recursive
 fi
