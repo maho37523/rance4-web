@@ -24,7 +24,9 @@ class System35Shell {
         window.onerror = (message, url, line, column, error) => {
             const address = scenario_address();
             gaException({type: 'onerror', message, url, line, column, address}, true);
-            addToast(message_.error_occurred, 'error');
+            // Keep the original message visible: generic browser errors make
+            // remote-game startup failures impossible to diagnose.
+            addToast(`${message_.error_occurred} ${String(message)}`, 'error');
             window.onerror = null;
         };
         window.addEventListener('unhandledrejection', (evt: any) => {

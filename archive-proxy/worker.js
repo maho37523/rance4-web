@@ -13,7 +13,10 @@ export const RELEASE_FILES = Object.freeze({
   wa: { name: "WA.ALD", size: 2150928 },
 });
 export const ALLOWED_ORIGIN = "https://maho37523.github.io";
-export const IMG_RANGE_LIMIT = 16 * 1024 * 1024;
+// The CD reader decodes a complete CD-DA track at a time. This image's
+// largest track is 44,370,480 bytes, so 80 MiB is the smallest practical
+// safety ceiling while still rejecting a whole-disc download.
+export const IMG_RANGE_LIMIT = 80 * 1024 * 1024;
 export const CUE_LIMIT = 1024 * 1024;
 
 const ROUTES = Object.freeze({
