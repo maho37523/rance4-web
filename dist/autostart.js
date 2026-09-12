@@ -1,15 +1,35 @@
 const games = {
-  rance4: '兰斯 4－教团的遗产－',
-  rance41: '兰斯 4.1 ～拯救制药厂！～',
-  rance42: '兰斯 4.2 ～天使组～',
+  rance4: {name: '兰斯 4：教团的遗产', resourceStrategy: 'published'},
+  rance41: {name: '兰斯 4.1：拯救制药厂', resourceStrategy: 'published'},
+  rance42: {name: '兰斯 4.2：天使组', resourceStrategy: 'published'},
+  ranceking: {name: '鬼畜王兰斯', resourceStrategy: 'local-import'},
 };
+
+function showLocalImport(game) {
+  const gameInfo = games[game];
+  document.title = `${gameInfo.name} · Rance Web`;
+  document.querySelector('.navbar-brand').textContent = gameInfo.name;
+  document.querySelector('#loader h1').textContent = gameInfo.name;
+  document.querySelector('#loader .game-picker').hidden = true;
+  document.querySelector('#local-import').hidden = false;
+  const status = document.querySelector('#loader .local-status');
+  status.hidden = false;
+  status.textContent = '请选择游戏根目录中的四个 ALD（SA/GA/GB/WA）文件、可选的 SA.ASD，以及 kichiku_CD-DA.img 和 kichiku_CD-DA.cue。';
+  const input = document.querySelector('#fileselect');
+  input.classList.remove('hidden-while-loading');
+  input.click();
+}
 
 async function startSelectedGame() {
   const game = new URLSearchParams(location.search).get('game');
   if (!game || !games[game]) return;
-  document.title = `${games[game]} · Rance Web`;
-  document.querySelector('.navbar-brand').textContent = games[game];
-  document.querySelector('#loader h1').textContent = games[game];
+  if (games[game].resourceStrategy === 'local-import') {
+    showLocalImport(game);
+    return;
+  }
+  document.title = `${games[game].name} · Rance Web`;
+  document.querySelector('.navbar-brand').textContent = games[game].name;
+  document.querySelector('#loader h1').textContent = games[game].name;
   document.querySelector('#loader .game-picker').hidden = true;
   const status = document.querySelector('#loader .local-status');
   status.hidden = false;
