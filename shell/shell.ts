@@ -23,10 +23,13 @@ class System35Shell {
         const message_ = message;
         window.onerror = (message, url, line, column, error) => {
             const address = scenario_address();
-            gaException({type: 'onerror', message, url, line, column, address}, true);
+            const detail = error instanceof Error
+                ? `${error.name}: ${error.message}`
+                : String(message || 'Unknown startup error');
+            gaException({type: 'onerror', message, detail, url, line, column, address}, true);
             // Keep the original message visible: generic browser errors make
             // remote-game startup failures impossible to diagnose.
-            addToast(`${message_.error_occurred} ${String(message)}`, 'error');
+            addToast(`${message_.error_occurred} ${detail}`, 'error');
             window.onerror = null;
         };
         window.addEventListener('unhandledrejection', (evt: any) => {
@@ -40,7 +43,9 @@ class System35Shell {
                     addToast(`${message_.error_occurred} ${message}`, 'error');
                 }
             } else {
-                gaException({type: 'rejection', name: reason.constructor.name, reason, address}, true);
+                const name = reason == null ? 'UnknownRejection' : reason.constructor?.name ?? typeof reason;
+                gaException({type: 'rejection', name, reason, address}, true);
+                addToast(`${message_.error_occurred} ${String(reason ?? 'Unknown startup error')}`, 'error');
             }
         });
     }
