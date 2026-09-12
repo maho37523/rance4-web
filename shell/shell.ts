@@ -37,7 +37,7 @@ class System35Shell {
                 let {name, message, stack} = reason;
                 gaException({type: 'rejection', name, message, stack, address}, true);
                 if (name === 'RuntimeError') {
-                    addToast(message_.error_occurred, 'error');
+                    addToast(`${message_.error_occurred} ${message}`, 'error');
                 }
             } else {
                 gaException({type: 'rejection', name: reason.constructor.name, reason, address}, true);
