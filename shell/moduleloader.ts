@@ -25,6 +25,11 @@ export async function loadModule(name: 'system3' | 'xsystem35'): Promise<any> {
     const options: EmscriptenOptions = {
         arguments: [],
         canvas: document.getElementById('canvas') as HTMLCanvasElement,
+        // The public launcher updates its engine independently of the page
+        // shell. Version this request so a repaired wasm binary is never
+        // shadowed by a visitor's earlier browser cache.
+        locateFile: (path: string, prefix: string) =>
+            path.endsWith('.wasm') ? `${prefix}${path}?v=gbk-lock-1` : `${prefix}${path}`,
         print: console.log.bind(console),
         printErr: (...args: unknown[]) => {
             console.error(...args);
