@@ -40,7 +40,6 @@ jobs:
 
   deploy_pages:
     if: github.ref == 'refs/heads/main'
-    needs: build
     runs-on: ubuntu-latest
     permissions:
       pages: write
