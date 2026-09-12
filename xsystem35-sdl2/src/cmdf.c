@@ -1,0 +1,198 @@
+/*
+ * cmdf.c  SYSTEM35 F command
+ *
+ * Copyright (C) 1997-1998 Masaki Chikama (Wren) <chikama@kasumi.ipl.mech.nagoya-u.ac.jp>
+ *               1998-                           <masaki-c@is.aist-nara.ac.jp>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *
+*/
+/* $Id: cmdf.c,v 1.15 2006/04/21 16:39:02 chikama Exp $ */
+
+#include <stdio.h>
+#include <string.h>
+#include "portab.h"
+#include "xsystem35.h"
+#include "scenario.h"
+#include "nact.h"
+#include "LittleEndian.h"
+
+static void commandF1();
+static void commandF2();
+static void commandF3();
+static void commandF4();
+static void commandF5();
+static void commandF6();
+static void commandF7();
+static void commandF8();
+static void commandF9();
+static void commandF10();
+static void commandF11();
+
+/* F6/7 用変数 */
+static vmvar_t *F6Index[256];
+
+void commandF() {
+	switch (sl_getc()) {
+	case 1:
+		commandF1(); break;
+	case 2:
+		commandF2(); break;
+	case 3:
+		commandF3(); break;
+	case 4:
+		commandF4(); break;
+	case 5:
+		commandF5(); break;
+	case 6:
+		commandF6(); break;
+	case 7:
+		commandF7(); break;
+	case 8:
+		commandF8(); break;
+	case 9:
+		commandF9(); break;
+	case 10:
+		commandF10(); break;
+	case 11:
+		commandF11(); break;
+	default:
+		break;
+	}
+}
+
+static void commandF1() {
+	int str_number = getCaliValue();
+	int skip       = getCaliValue();
+	int i;
+	char *p;
+	
+	TRACE("F1 %d,%d:", str_number, skip);
+	
+	p = (char *)nact->datatbl_addr;
+	for (i = 0; i < skip; i++) {
+		p += (strlen(p) + 1);
+	}
+	
+	svar_set(str_number, p);
+	p += (strlen(p) + 1);
+	nact->datatbl_addr = (void *)p;
+}
+
+static void commandF2() {
+	vmvar_t *read_var = getCaliVariable();
+	int skip      = getCaliValue();
+	uint16_t *p = (uint16_t *)nact->datatbl_addr;
+	
+	p += skip;
+	
+	*read_var = LittleEndian_getW((uint8_t *)p, 0);
+	
+	p++;
+	nact->datatbl_addr = (void *)p;
+	
+	TRACE("F2 %d,%d:", *read_var, skip);
+}
+
+static void commandF3() {
+	vmvar_t *read_var = getCaliVariable();
+	int skip      = getCaliValue();
+	
+	*read_var = LittleEndian_getW(nact->datatbl_addr, skip *2);
+	
+	TRACE("F3 %d,%d:", *read_var, skip);
+}
+
+static void commandF4() {
+	vmvar_t *read_var = getCaliVariable();
+	int count     = getCaliValue();
+	int i;
+	uint16_t *p = (uint16_t *)nact->datatbl_addr;
+	
+	for (i = 0; i < count; i++) {
+		*read_var = LittleEndian_getW((uint8_t *)p, 0);
+		p++;
+		read_var++;
+	}
+	
+	nact->datatbl_addr = p;
+	
+	TRACE("F4 %d,%d:", *read_var, count);
+}
+
+static void commandF5() {
+	vmvar_t *read_var = getCaliVariable();
+	int count     = getCaliValue();
+	int i;
+	
+	for (i = 0; i < count; i++) {
+		*read_var = LittleEndian_getW(nact->datatbl_addr, i * 2);
+		read_var++;
+	}
+	
+	TRACE("F5 %d,%d:", *read_var, count);
+}
+
+static void commandF6() {
+	vmvar_t *var  = getCaliVariable();
+	int index = getCaliValue();
+	
+	F6Index[index] = var;
+	
+	TRACE("F6 %d,%d:", *var, index);
+}
+
+static void commandF7() {
+	int data_width = getCaliValue();
+	int count      = getCaliValue();
+	int i, j;
+	uint16_t *p = (uint16_t *)nact->datatbl_addr;
+	
+	for (i = 0; i < count; i++) {
+		for (j = 0; j < data_width; j++) {
+			*(F6Index[j] + i) = LittleEndian_getW((uint8_t *)p, 0);
+			p++;
+		}
+	}
+	
+	nact->datatbl_addr = p;
+	
+	TRACE("F7 %d,%d", data_width, count);
+}
+
+static void commandF8() {
+	int snum = getCaliValue();
+	int scnt = getCaliValue();
+	TRACE_UNIMPLEMENTED("F8 %d,%d:", snum, scnt);
+}
+
+static void commandF9() {
+	int snum = getCaliValue();
+	int scnt = getCaliValue();
+	TRACE_UNIMPLEMENTED("F9 %d,%d:", snum, scnt);
+}
+
+static void commandF10() {
+	int snum = getCaliValue();
+	int scnt = getCaliValue();
+	TRACE_UNIMPLEMENTED("F10 %d,%d:", snum, scnt);
+}
+
+static void commandF11() {
+	int snum = getCaliValue();
+	int ends = getCaliValue();
+	TRACE_UNIMPLEMENTED("F11 %d,%d:", snum, ends);
+}

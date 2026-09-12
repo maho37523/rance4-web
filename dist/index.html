@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>兰斯 4 系列 · 本地网页版</title>
+    <meta name="description" content="兰斯 4、4.1 与 4.2 的统一本地网页启动器。">
+    <link rel="stylesheet" href="lib/spectre.0.5.8.min.css">
+    <link rel="stylesheet" href="lib/font-awesome.min.css">
+    <link rel="stylesheet" href="style.css?v=mobile-controls-2">
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="help/images/icon.png" type="image/png">
+    <link rel="icon" href="help/images/icon.png" type="image/png">
+
+    <link rel="preload" as="font" type="font/woff2" href="fonts/fontawesome-webfont.woff2?v=4.7.0" crossorigin>
+    <script>window.gtag = window.gtag || function() {};</script>
+  </head>
+  <body>
+
+  <header id="toolbar" class="before-game-start">
+    <div id="toolbar-handler" class="tooltip tooltip-bottom" data-tooltip="メニュー">
+      <div class="toolbar-handler-icon"></div>
+    </div>
+    <div class="navbar">
+      <section class="navbar-center">
+        <span class="navbar-brand text-ellipsis ml-2">兰斯 4 系列</span>
+      </section>
+      <section class="navbar-section">
+        <div id="volume-control" class="mr-2 hidden-until-game-start">
+          <i id="volume-control-icon" class="fa fa-volume-up tooltip tooltip-bottom" data-tooltip="ミュート (m)"></i>
+          <input id="volume-control-slider" type="range" class="tooltip tooltip-bottom" data-tooltip="音量">
+        </div>
+
+        <button id="restart-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start hidden-in-narrow-screen" data-tooltip="再起動 (r)"><i class="fa fa-refresh"></i></button>
+        <button id="screenshot-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start hidden-in-narrow-screen" data-tooltip="スクリーンショット (p)"><i class="fa fa-camera"></i></button>
+        <button id="msgskip-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start" data-tooltip="スキップ (s)"><i class="fa fa-forward"></i></button>
+        <button id="textlog-button" class="btn btn-link tooltip tooltip-bottom mr-2 hidden-until-game-start" data-tooltip="テキスト履歴 (l)"><i class="fa fa-history"></i></button>
+        <button id="settings-button" class="btn btn-link tooltip tooltip-bottom mr-2" data-tooltip="設定"><i class="fa fa-cog"></i></button>
+        <a class="btn btn-link tooltip tooltip-bottom" target="_blank" href="help/" data-tooltip="ヘルプ"><i class="fa fa-question-circle mr-2"></i></a>
+        <button id="toolbar-close-button" class="btn btn-link"><i class="fa fa-angle-up"></i></button>
+      </section>
+    </div>
+  </header>
+
+  <div class="contents">
+
+    <div id="loader">
+      <h1>兰斯 4 系列</h1>
+      <p>选择一部作品后，浏览器会加载公开发布的原始游戏资源并启动对应的 WebAssembly 引擎。</p>
+      <div class="game-picker">
+        <a class="btn btn-primary" href="?game=rance4">兰斯 4：教团的遗产</a>
+        <a class="btn btn-primary" href="?game=rance41">兰斯 4.1：拯救制药厂</a>
+        <a class="btn btn-primary" href="?game=rance42">兰斯 4.2：天使组</a>
+      </div>
+      <p class="local-status" hidden></p>
+      <ul class="hidden-while-loading">
+        <li id="imgReady" class="notready" lang="ja">KICHIKUOU.img</li>
+        <li id="cueReady" class="notready" lang="ja">KICHIKUOU.cue</li>
+      </ul>
+      <input type="file" id="fileselect" class="form-input hidden-while-loading" multiple/>
+      <div class="show-while-loading loading loading-lg" hidden></div>
+
+      <div id="unsupported" hidden>
+	このブラウザでは利用できません。
+      </div>
+    </div>
+
+    <div id="xsystem35" hidden>
+      <audio id="audio"></audio>
+      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <dialog id="settings" class="modal-container">
+    <div class="modal-header">
+      <div class="modal-title">設定</div>
+    </div>
+    <div class="modal-body settings">
+      <section>
+        <h5>表示</h5>
+        <div class="form-group">
+          <span class="mr-2">拡大率:</span>
+          <select id="zoom" class="form-select">
+            <option value="1">100%</option>
+            <option value="1.25">125%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+            <option value="3">300%</option>
+            <option value="fit">自動</option>
+          </select>
+        </div>
+        <div>
+          <label for="pixelate" class="form-checkbox">
+            <input type="checkbox" id="pixelate">
+            <i class="form-icon"></i>拡大時に補間しない
+          </label>
+        </div>
+        <div>
+          <label for="antialias" class="form-checkbox">
+            <input type="checkbox" id="antialias" checked>
+            <i class="form-icon"></i>文字をなめらかに表示する
+          </label>
+        </div>
+      </section>
+      <div class="divider"></div>
+      <section>
+        <h5>メッセージスキップ</h5>
+        <div>
+          <label for="msgskip-skip-unseen" class="form-checkbox">
+            <input type="checkbox" id="msgskip-skip-unseen">
+            <i class="form-icon"></i>未読メッセージもスキップする
+          </label>
+        </div>
+        <div>
+          <label for="msgskip-stop-on-unseen" class="form-checkbox">
+            <input type="checkbox" id="msgskip-stop-on-unseen">
+            <i class="form-icon"></i>未読メッセージで解除する
+          </label>
+        </div>
+        <div>
+          <label for="msgskip-stop-on-menu" class="form-checkbox">
+            <input type="checkbox" id="msgskip-stop-on-menu">
+            <i class="form-icon"></i>選択肢で解除する
+          </label>
+        </div>
+        <div>
+          <label for="msgskip-stop-on-click" class="form-checkbox">
+            <input type="checkbox" id="msgskip-stop-on-click">
+            <i class="form-icon"></i>クリックで解除する
+          </label>
+        </div>
+      </section>
+      <div class="divider"></div>
+      <section>
+        <h5>一般</h5>
+        <div>
+          <label for="unload-confirmation" class="form-checkbox">
+            <input type="checkbox" id="unload-confirmation">
+            <i class="form-icon"></i>ページを閉じる前に確認する
+          </label>
+        </div>
+        <div>
+          <label for="streamer-mode" class="form-checkbox">
+            <input type="checkbox" id="streamer-mode">
+            <i class="form-icon"></i>配信者モード（18禁画像にモザイク）
+          </label>
+        </div>
+      </section>
+      <div class="divider"></div>
+      <section>
+        <h5>セーブデータ</h5>
+        <div>
+          <button id="downloadSaveData" class="btn mr-2" disabled>ZIPに保存</button>
+          <button id="uploadSaveData" class="btn">ZIPから復元</button>
+        </div>
+      </section>
+    </div>
+    <div class="modal-footer">
+      <button id="settings-close" class="btn btn-primary">OK</button>
+    </div>
+  </dialog>
+
+  <!-- Text log -->
+  <dialog id="textlog" class="modal-container">
+    <div class="modal-header">
+      <div class="modal-title">テキスト履歴</div>
+    </div>
+    <pre id="textlog-content" class="modal-body">
+    </pre>
+    <div class="modal-footer">
+      <button id="textlog-close" class="btn btn-primary">閉じる</button>
+    </div>
+  </dialog>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script type="module" src="shell.js?v=mobile-controls-2"></script>
+  <script type="module" src="autostart.js?v=public-static-1"></script>
+  <script nomodule>
+    unsupported.hidden = false;
+  </script>
+  </body>
+</html>

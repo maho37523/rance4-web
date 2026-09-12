@@ -1,0 +1,41 @@
+name: Verify source build
+on:
+  push:
+  pull_request:
+
+env:
+  EM_VERSION: 6.0.8
+  EM_CACHE_FOLDER: 'emsdk-cache'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v6
+
+    - name: Setup cache
+      id: cache-system-libraries
+      uses: actions/cache@v5
+      with:
+        path: ${{env.EM_CACHE_FOLDER}}
+        key: ${{env.EM_VERSION}}-${{ runner.os }}
+
+    - name: Setup Emscripten toolchain
+      uses: emscripten-core/setup-emsdk@v16
+      with:
+        version: ${{env.EM_VERSION}}
+        actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
+
+    - name: Build Wasm
+      run: ./build-wasm.sh
+
+    - name: Build Shell
+      run: |
+        npm install
+        npm run type
+        npm run build
+
+    # Game data is deliberately absent from source control. A release runs
+    # `npm run build-public` with the authorized local source data, then
+    # publishes the resulting static artifact through the hosting project.

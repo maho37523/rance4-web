@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "ES2017",
+        "lib": ["ES2020", "WebWorker"],
+        "noEmit": true,
+        "strict": true,
+        "module": "es2020",
+        "moduleResolution": "Bundler",
+        "isolatedModules": true,
+        "esModuleInterop": true
+    },
+    "files": [
+        "archiveworker.ts"
+    ]
+}

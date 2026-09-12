@@ -1,0 +1,801 @@
+/*
+	ALICE SOFT SYSTEM 3 for Win32
+
+	[ NACT ]
+*/
+
+#include <assert.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include "nact.h"
+#include "encoding.h"
+#include "ags.h"
+#include "mako.h"
+#include "msgskip.h"
+#include "texthook.h"
+#include "dri.h"
+#include "config.h"
+#include "fileio.h"
+#include "game_id.h"
+#include "debugger/debugger.h"
+
+#ifndef WIN32
+#define sscanf_s sscanf
+#endif
+
+extern SDL_Window* g_window;
+
+// static
+const char* NACT::get_scenario_filename(const GameId& game_id)
+{
+	return game_id.is(GameId::RANCE2_HINT) ? "GDISK.DAT" :
+	       game_id.is(GameId::PROG_OMAKE) ? "AGAME.DAT" :
+	       game_id.is(GameId::NISE_NAGURI) ? "ADISK.PAT" :
+	       "ADISK.DAT";
+}
+
+// 初期化
+
+NACT::NACT(const Config& config, const GameId& game_id)
+	: encoding(Encoding::create(game_id.encoding)),
+	  config(config),
+	  game_id(game_id),
+	  strings(config.get_strings(encoding.get(), game_id.language == ENGLISH)),
+	  seed(SDL_GetTicks()),
+	  cg_flags(CG_GET_PALETTE | CG_EXTRACT_PALETTE | CG_EXTRACT_CG)
+{
+	platform_initialize();
+
+	// AG00.DAT読み込み
+	const char* ag00_name = game_id.is(GameId::RANCE2_HINT) ? "GG00.DAT" : "AG00.DAT";
+	auto fio = FILEIO::open(ag00_name, FILEIO_READ_BINARY);
+	if (fio) {
+		int d0, d1, d2, d3;
+		std::string line = fio->gets();
+		if (sscanf_s(line.c_str(), "%d,%d,%d,%d", &d0, &d1, &d2, &d3) != 4)
+			sys_error("AG00.DAT: parse error");
+		for (int i = 0; i < d1; i++) {
+			caption_verb[i] = fio->gets();
+		}
+		for (int i = 0; i < d2; i++) {
+			caption_obj[i] = fio->gets();
+		}
+		fio.reset();
+	}
+
+	// ADISK.DAT
+	const char* scenario_filename = get_scenario_filename(game_id);
+	sco.open(scenario_filename);
+	if (!sco.loaded())
+		sys_error("Cannot open %s", scenario_filename);
+	sco.page_jump(0, 2);
+
+	// 各種クラス生成
+	ags = new AGS(config, game_id);
+	mako = new MAKO(config, game_id);
+	msgskip = new MsgSkip();
+
+	init_windows();
+	init_text();
+
+	SDL_Init(SDL_INIT_GAMECONTROLLER);
+	for (int i = 0; i < SDL_NumJoysticks(); ++i) {
+		if (SDL_IsGameController(i)) {
+			sdl_gamecontroller = SDL_GameControllerOpen(i);
+			if (sdl_gamecontroller) {
+				break;
+			} else {
+				WARNING("Could not open gamecontroller %i: %s\n", i, SDL_GetError());
+			}
+		}
+	}
+}
+
+NACT::~NACT()
+{
+	delete ags;
+	delete mako;
+	delete msgskip;
+
+	platform_finalize();
+}
+
+int NACT::mainloop()
+{
+	msgskip->load_from_file();
+
+	int sleep_cnt = 0;
+	while(!terminate) {
+#ifdef ENABLE_DEBUGGER
+		if (g_debugger && g_debugger->trapped()) {
+			sco.update_cmd_addr();
+			ags->update_screen();
+			g_debugger->repl(0);
+		}
+#endif
+		execute();
+		// 512コマンド実行毎にSleep(10)
+		if(!(sleep_cnt = (sleep_cnt + 1) & 0x1ff)) {
+			sys_sleep(10);
+		}
+	}
+	while (exit_code == NACT_HALT) {
+		// exit_code can change if the user selects restart or exit from the menu.
+		sys_sleep(16);
+	}
+	return exit_code;
+}
+
+void NACT::quit(int code)
+{
+#ifdef __EMSCRIPTEN__
+	code = EM_ASM_INT({ return xsystem35.shell.onExit($0); }, code);
+#endif
+	exit_code = code;
+	terminate = true;
+}
+
+// コマンドパーサ
+
+EMSCRIPTEN_KEEPALIVE  // Prevent inlining, because this function is listed in ASYNCIFY_ADD
+void NACT::execute()
+{
+	if (game_id.sys_ver == 1 && sco.page() == 0 && sco.current_addr() == 2) {
+		opening();
+	}
+
+	// １コマンド実行
+	uint8 cmd = sco.fetch_command();
+
+	if(verb_obj && cmd != '[' && cmd != ':') {
+		// 動詞-目的語メニューの表示
+		sco.ungetd();
+		cmd_open_verb();
+		return;
+	}
+
+#ifdef ENABLE_DEBUGGER
+	if (cmd == debugger::BREAKPOINT_INSTRUCTION) {
+		if (!g_debugger)
+			sys_error("Illegal BREAKPOINT instruction");
+		ags->update_screen();
+		cmd = g_debugger->handle_breakpoint(sco.page(), sco.cmd_addr());
+	}
+#endif
+
+	switch(cmd) {
+		case '!':
+			cmd_calc();
+			break;
+		case '{':
+			cmd_branch();
+			break;
+		case '}':
+			break;
+		case '@':
+			cmd_label_jump();
+			break;
+		case '\\':
+			cmd_label_call();
+			break;
+		case '&':
+			cmd_page_jump();
+			break;
+		case '%':
+			cmd_page_call();
+			break;
+		case '$':
+			cmd_set_menu();
+			break;
+		case '[':
+			cmd_set_verbobj();
+			break;
+		case ':':
+			cmd_set_verbobj2();
+			break;
+		case ']':
+			cmd_open_menu();
+			break;
+		case 'A':
+			cmd_a();
+			break;
+		case 'B':
+			cmd_b();
+			break;
+		case 'D':
+			cmd_d();
+			break;
+		case 'E':
+			cmd_e();
+			break;
+		case 'F':
+			cmd_f();
+			break;
+		case 'G':
+			cmd_g();
+			break;
+		case 'H':
+			cmd_h();
+			break;
+		case 'I':
+			cmd_i();
+			break;
+		case 'J':
+			cmd_j();
+			break;
+		case 'K':
+			cmd_k();
+			break;
+		case 'L':
+			cmd_l();
+			break;
+		case 'M':
+			cmd_m();
+			break;
+		case 'N':
+			cmd_n();
+			break;
+		case 'O':
+			cmd_o();
+			break;
+		case 'P':
+			cmd_p();
+			break;
+		case 'Q':
+			cmd_q();
+			break;
+		case 'R':
+			cmd_r();
+			break;
+		case 'S':
+			cmd_s();
+			break;
+		case 'T':
+			cmd_t();
+			break;
+		case 'U':
+			cmd_u();
+			break;
+		case 'V':
+			cmd_v();
+			break;
+		case 'W':
+			cmd_w();
+			break;
+		case 'X':
+			cmd_x();
+			break;
+		case 'Y':
+			cmd_y();
+			break;
+		case 'Z':
+			cmd_z();
+			break;
+		case '\'': case '"':
+			message(cmd);
+			break;
+		default:
+			if (is_message(cmd)) {
+				message(cmd);
+			} else {
+				sco.unknown_command(cmd);
+			}
+			break;
+	}
+}
+
+void NACT::cmd_calc()
+{
+	int index = sco.getd();
+	if (0x80 <= index && index <= 0xbf) {
+		index &= 0x3f;
+	} else {
+		index = ((index & 0x3f) << 8) | sco.getd();
+	}
+	var[index] = cali();
+
+	TRACE("!var[%d]:%d!", index, var[index]);
+}
+
+void NACT::cmd_label_jump()
+{
+	int next_addr = sco.getw();
+	sco.jump_to(next_addr);
+
+	TRACE("@%x:", next_addr);
+}
+
+void NACT::cmd_label_call()
+{
+	int next_addr = sco.getw();
+	sco.label_call(next_addr);
+
+	TRACE("\\%x:", next_addr);
+}
+
+void NACT::cmd_page_jump()
+{
+	int next_page = cali();
+	sco.page_jump(next_page, 2);
+
+	TRACE("&%d:", next_page);
+}
+
+void NACT::cmd_page_call()
+{
+	int next_page = cali();
+	sco.page_call(next_page);
+
+	TRACE("%%%d:", next_page);
+}
+
+void NACT::cmd_set_menu()
+{
+	if (defining_menu_item()) {
+		menu_lines.push_back(std::move(*pending_menu_line));
+		pending_menu_line.reset();
+
+		TRACE("$");
+	} else {
+		if (menu_items.empty()) {
+			clear_menu_lines();
+		}
+		menu_items.emplace_back(sco.getw());
+		pending_menu_line.emplace();
+
+		if (game_id.is(GameId::GAKUEN_SENKI))
+			menu_window = 2;
+
+		TRACE("$%x,", menu_items.back().addr);
+	}
+}
+
+void NACT::cmd_open_menu()
+{
+	TRACE("]");
+
+	if (menu_items.empty()) {
+		sco.jump_to(sco.default_addr());
+		return;
+	}
+
+	if (game_id.is_system1_dps()) {
+		if (!text_refresh) {
+			cmd_a();
+		}
+	}
+
+	int selection = menu_select();
+	if (terminate)
+		return;
+
+	if (selection != -1) {
+		sco.jump_to(menu_items[selection].addr);
+	}
+	menu_items.clear();
+}
+
+void NACT::cmd_set_verbobj()
+{
+	int verb = sco.getd();
+	int obj = sco.getd();
+	int addr = sco.getw();
+
+	menu_items.emplace_back(addr, verb, obj);
+	verb_obj = true;
+
+	TRACE("[%x,%s,%s:", addr,
+		encoding->toUtf8(caption_verb[verb]).c_str(),
+		encoding->toUtf8(caption_obj[obj]).c_str());
+}
+
+void NACT::cmd_set_verbobj2()
+{
+	int condition = cali();
+	int verb = sco.getd();
+	int obj = sco.getd();
+	int addr = sco.getw();
+
+	if (condition) {
+		menu_items.emplace_back(addr, verb, obj);
+	}
+	verb_obj = true;
+
+	TRACE(":%d,%x,%s,%s:", condition, addr,
+		encoding->toUtf8(caption_verb[verb]).c_str(),
+		encoding->toUtf8(caption_obj[obj]).c_str());
+}
+
+void NACT::cmd_a()
+{
+	texthook_nextpage();
+
+	TRACE("A");
+
+	if (msgskip->skipping()) {
+		if (msgskip->get_flags() & MSGSKIP_STOP_ON_CLICK && get_key())
+			msgskip->activate(false);
+	} else if (show_push) {
+		draw_push(text_window);
+	}
+
+	get_wheel();  // clear wheel input
+
+	// キーが押されて離されるまで待機
+	while (!msgskip->skipping()) {
+		if(terminate) {
+			return;
+		}
+		if (get_key() || get_wheel() < 0) {
+			break;
+		}
+		sys_sleep(16);
+	}
+	sys_sleep(30);
+	if (!msgskip->skipping()) {
+		wait_key_release(0x1f);
+	}
+
+	// ウィンドウ更新
+	clear_text_window(text_window, true);
+
+	if (game_id.is_system1_dps()) {
+		text_refresh = true;
+	}
+}
+
+void NACT::cmd_f()
+{
+	TRACE("F");
+
+	sco.jump_to(2);
+}
+
+void NACT::cmd_r()
+{
+	texthook_newline();
+
+	TRACE("R");
+
+	// If the text is outside the window, do a page break
+	if (return_text_line(text_window)) {
+		cmd_a();
+	}
+}
+
+void NACT::cmd_s()
+{
+	int page = sco.getd();
+
+	TRACE("S %d:", page);
+
+	if(page) {
+		mako->play_music(page);
+	} else {
+		mako->stop_music();
+	}
+}
+
+void NACT::cmd_x()
+{
+	int index = sco.getd();
+
+	TRACE("X %d:", index);
+
+	if(1 <= index && index <= 10) {
+		draw_text(tvar[index - 1]);
+	}
+}
+
+void NACT::message(uint8_t first_byte)
+{
+	char buf[200];
+	if (first_byte == '\'' || first_byte == '"') {  // SysEng
+		sco.get_syseng_string(buf, sizeof(buf), encoding.get(), first_byte);
+	} else {
+		int i = 0;
+		uint8_t c = first_byte;
+		while (is_message(c)) {
+			int len = encoding->mblen(c);
+			buf[i++] = c;
+			for (int j = 1; j < len; ++j)
+				buf[i++] = sco.getd();
+			c = sco.getd();
+		}
+		sco.ungetd();
+		buf[i] = '\0';
+	}
+
+	draw_text(buf, text_wait_enb);
+
+	if (game_id.is_system1_dps()) {
+		if (!defining_menu_item()) {
+			text_refresh = false;
+		}
+	}
+	if (!defining_menu_item())
+		msgskip->on_message(sco.page(), sco.current_addr());
+
+	// TODO: Convert hankaku to zenkaku
+	TRACE("%s", encoding->toUtf8(buf).c_str());
+}
+
+void NACT::text_wait()
+{
+	if (msgskip->skipping())
+		return;
+
+	Uint32 dwTime = SDL_GetTicks() + text_wait_time;
+	while (!terminate) {
+		if (get_key(false) && wait_keydown)
+			break;
+		if (dwTime <= SDL_GetTicks())
+			break;
+		sys_sleep(16);
+	}
+}
+
+// 下位関数
+
+bool NACT::load(int index)
+{
+	auto fio = FILEIO::open_save(index, FILEIO_READ_BINARY);
+	if (!fio)
+		return false;
+	fio->seek(112, SEEK_SET);
+
+	int next_page = fio->getw() - 1;
+	fio->getw();
+	fio->getw();	// cg no?
+	fio->getw();
+	int next_music = fio->getw();
+	fio->getw();
+	int next_addr = fio->getw();
+	fio->getw();
+	for (int i = 0; i < 512; i++) {
+		var[i] = fio->getw();
+	}
+	load_display_state(fio.get());
+	for (int i = 0; i < 10; i++) {
+		tvar[i] = fio->read_string(22);
+	}
+	for (int i = 0; i < 30; i++) {
+		for (int j = 0; j < 10; j++) {
+			tvar_stack[i][j] = fio->read_string(22);
+		}
+	}
+	for (int i = 0; i < 30; i++) {
+		for (int j = 0; j < 20; j++) {
+			var_stack[i][j] = fio->getw();
+		}
+	}
+	fio.reset();
+
+	sco.page_jump(next_page, next_addr);
+
+	mako->play_music(next_music);
+	return true;
+}
+
+bool NACT::save(int index, const char header[112])
+{
+	auto fio = FILEIO::open_save(index, FILEIO_WRITE_BINARY);
+	if (!fio)
+		return false;
+
+	fio->write(header, 112);
+	fio->putw(sco.page() + 1);
+	fio->putw(0);
+	fio->putw(0);	// cg no?
+	fio->putw(0);
+	fio->putw(mako->current_music);
+	fio->putw(0);
+	fio->putw(sco.current_addr());
+	fio->putw(0);
+	for (int i = 0; i < 512; i++) {
+		fio->putw(var[i]);
+	}
+	save_display_state(fio.get());
+	for (int i = 0; i < 10; i++) {
+		fio->write_string(tvar[i], 22);
+	}
+	for (int i = 0; i < 30; i++) {
+		for (int j = 0; j < 10; j++) {
+			fio->write_string(tvar_stack[i][j], 22);
+		}
+	}
+	for (int i = 0; i < 30; i++) {
+		for (int j = 0; j < 20; j++) {
+			fio->putw(var_stack[i][j]);
+		}
+	}
+
+	assert(fio->tell() == 9510);
+	return true;
+}
+
+int NACT::menu_select()
+{
+	int num_items = static_cast<int>(menu_lines.size());
+
+	if (msgskip->get_flags() & MSGSKIP_STOP_ON_MENU)
+		msgskip->activate(false);
+
+	// メニュー表示
+	open_menu_window(menu_window);
+
+	// マウス移動
+	int sx, sy, ex;
+	get_menu_window_rect(menu_window, &sx, &sy, &ex, nullptr);
+	int mx = ex - 16;
+	int my = sy + 10;
+	int height = menu_style.font_size + 4;
+	int current_index = 0;
+
+	set_cursor(mx, my);
+	wait_after_open_menu();
+
+	// メニュー選択
+	for(bool selectable = true;;) {
+		// 入力待機
+		int val = 0, current_mx = mx, current_my = my;
+		for(;;) {
+			if(terminate) {
+				return -1;
+			}
+			get_cursor(&current_mx, &current_my);
+			int dx = mx - current_mx;
+			int dy = my - current_my;
+			if (dx*dx + dy*dy > 10)
+				break;
+			if((val = get_key()) != 0) {
+				sys_sleep(100);
+				break;
+			}
+			sys_sleep(16);
+		}
+		if(val) {
+			wait_key_release();
+		}
+
+		if(val == 0) {
+			// マウス操作
+			mx = current_mx; my = current_my;
+			int index = (my - sy) / height;
+			if(sx <= mx && mx <= ex && 0 <= index && index < num_items) {
+				current_index = index;
+				redraw_menu_window(menu_window, current_index);
+				selectable = true;
+			} else {
+				selectable = false;
+			}
+		} else if(val == 1 || val == 2 || val == 4 || val == 8) {
+			if(val == 1) {
+				current_index = current_index ? current_index - 1 : num_items - 1;
+			} else if(val == 2) {
+				current_index = (current_index < num_items - 1) ? current_index + 1 : 0;
+			} else if(val == 4) {
+				current_index = 0;
+			} else if(val == 8) {
+				current_index = num_items - 1;
+			}
+			redraw_menu_window(menu_window, current_index);
+			selectable = true;
+		} else if(val == 16 && selectable) {
+			break;
+		} else if(val == 32) {
+			current_index = -1;
+			break;
+		}
+	}
+
+	// 画面更新
+	close_menu_window(menu_window);
+	if(clear_text) {
+		clear_text_window(text_window, true);
+	}
+
+	return current_index;
+}
+
+uint16 NACT::random(uint16 range)
+{
+	// xorshift32
+	seed = seed ^ (seed << 13);
+	seed = seed ^ (seed >> 17);
+	seed = seed ^ (seed << 15);
+	return (uint16)(((uint32)range * (seed & 0xffff)) >> 16) + 1;
+}
+
+void NACT::wait_after_open_menu()
+{
+	if (mouse_move_enabled) {
+		// 連打による誤クリック防止
+		Uint32 dwTime = SDL_GetTicks();
+		Uint32 dwWait = dwTime + 400;
+
+		while(dwTime < dwWait) {
+			if(terminate) {
+				return;
+			}
+			sys_sleep(10);
+			dwTime = SDL_GetTicks();
+		}
+	}
+
+	wait_key_release();
+}
+
+void NACT::fade_out(int duration_ms, bool white)
+{
+	if (ags->is_faded())
+		return;
+
+	ags->set_fade_color(white);
+
+	uint32_t start = SDL_GetTicks();
+	int level = 0;
+	while (level < 255) {
+		sys_sleep(16);
+		int t = SDL_GetTicks() - start;
+		level = t >= duration_ms ? 255 : t * 255 / duration_ms;
+		ags->set_fade_level(level);
+	}
+	ags->update_screen();
+}
+
+void NACT::fade_in(int duration_ms)
+{
+	if (!ags->is_faded())
+		return;
+
+	uint32_t start = SDL_GetTicks();
+	int level = 255;
+	while (level > 0) {
+		sys_sleep(16);
+		int t = SDL_GetTicks() - start;
+		level = t >= duration_ms ? 0 : (duration_ms - t) * 255 / duration_ms;
+		ags->set_fade_level(level);
+	}
+	ags->update_screen();
+}
+
+void NACT::sys_sleep(int ms) {
+	pump_events();
+	ags->update_screen();
+#ifdef ENABLE_DEBUGGER
+	if (g_debugger)
+		g_debugger->on_sleep();
+#endif
+#ifdef __EMSCRIPTEN__
+	emscripten_sleep(ms);
+#else
+	SDL_Delay(ms);
+#endif
+}
+
+NACT* NACT::create(const Config& config, const GameId& game_id) {
+	switch (game_id.sys_ver) {
+	case 1:
+		return create_system1(config, game_id);
+	case 2:
+		return create_system2(config, game_id);
+	default:
+		return create_system3(config, game_id);
+	}
+}
+
+#ifdef __EMSCRIPTEN__
+extern "C" {
+
+bool EMSCRIPTEN_KEEPALIVE save_screenshot(const char* path) {
+	return g_nact->ags->save_screenshot(path);
+}
+
+void EMSCRIPTEN_KEEPALIVE load_censor_list(const char *path) {
+	return g_nact->ags->load_censor_list(path);
+}
+
+}
+#endif

@@ -1,0 +1,28 @@
+{
+  "name": "kichikuou-web",
+  "version": "1.0.0",
+  "description": "",
+  "repository": "github:kichikuou/web",
+  "type": "module",
+  "scripts": {
+    "type": "(cd shell && tsc) && (cd worker && tsc)",
+    "build": "node build.js",
+    "prepare-public-assets": "node prepare-public-assets.mjs",
+    "build-public": "npm run build && npm run prepare-public-assets",
+    "local": "node server.mjs",
+    "serve": "node build.js --serve",
+    "build-help": "mkdocs build --config-file help/ja/mkdocs.yml && mkdocs build --config-file help/en/mkdocs.yml"
+  },
+  "dependencies": {
+    "@irori/idbfs": "6.0.8",
+    "@types/gtag.js": "^0.0.12",
+    "7z-wasm": "^1.1.0",
+    "font-awesome": "^4.7.0",
+    "js-fatfs": "^0.2.1",
+    "spessasynth_lib": "^4.0.9"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "typescript": "^5.9.2"
+  }
+}

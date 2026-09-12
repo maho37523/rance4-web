@@ -1,0 +1,121 @@
+header {
+    background-color: rgb(69,77,93);
+    color: #ccc;
+}
+
+#toolbar-handler {
+    display: none;
+
+    .toolbar-handler-icon {
+        width: 5px;
+        height: 5px;
+        margin: auto;
+        border: solid #ccc;
+        border-width: 2px 2px 0 0;
+        -webkit-transform: rotate(135deg);
+        transform: rotate(135deg);
+    }
+}
+
+#toolbar-close-button {
+    display: none;
+}
+
+@media all and (max-height: 480px) {
+    header.closeable .navbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        transition: top 0.4s ease;
+        background-color: rgba(69,77,93,0.85);
+
+        #toolbar-close-button {
+            display: initial;
+        }
+    }
+
+    header.closeable.closed {
+        #toolbar-handler {
+            display: initial;
+            position: absolute;
+            right: 0px;
+            top: 0px;
+            width: 40px;
+            height: 10px;
+            background-color: rgba(69,77,93,0.7);
+        }
+        .navbar {
+            top: -44px;
+        }
+    }
+}
+
+@media all and (max-width: 480px) {
+    .hidden-in-narrow-screen {
+        display: none;
+    }
+}
+
+.navbar {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0.2rem 0;
+    flex-wrap: nowrap;
+
+    .navbar-center {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .navbar-brand {
+        color: #ccc;
+    }
+
+    .navbar-section {
+        flex: 0;
+    }
+
+    .btn-link {
+        font-size: large;
+        color: #ccc;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    .btn.btn-link:focus,
+    .btn.btn-link:hover,
+    .btn.btn-link:active,
+    .btn.btn-link.active {
+        color: #eee;
+    }
+
+    .btn-link.activated {
+        color: #08f;
+    }
+
+    .btn.btn-link.activated:focus,
+    .btn.btn-link.activated:hover,
+    .btn.btn-link.activated:active,
+    .btn.btn-link.activated.active {
+        color: #05f;
+    }
+}
+
+#volume-control {
+    float: right;
+    white-space: nowrap;
+}
+
+#volume-control-icon {
+    font-size: 20px;
+    width: 26px;
+    padding: 5px;
+    vertical-align: middle;
+}
+
+#volume-control-slider {
+    width: 60px;
+    height: 30px;
+    vertical-align: middle;
+}

@@ -1,0 +1,72 @@
+; encoding: utf-8
+
+; System3-sdl2 configuration file.
+; Lines starting with a semicolon are comments.
+
+[config]
+
+; If set to true, text anti-aliasing will be disabled.
+noantialias = false
+
+; Directory to store saved game files.
+savedir = save
+
+; Font file used for text rendering. Supports *.ttf and *.otf files.
+fontfile = custom_font.ttf
+
+; Text file listing audio tracks to be played as background music, one per
+; line.
+playlist = bgm/playlist.txt
+
+; Force FM tone generator emulation even if MIDI is available.
+fm = true
+
+; If set to true, the game starts in fullscreen mode.
+;fullscreen = true
+
+; MIDI device number to use for music playback.
+mididevice = 0
+
+; Game ID. No need to specify if using AliceSoft's original game data.
+; Refer to game_compatibility.md for a list of possible values.
+game = rance41
+
+; Character encoding for game data. Choose between shift_jis or utf-8.
+encoding = shift_jis
+
+; Text to be displayed in the window's title bar. If not specified, the
+; original Japanese game title will be used.
+title = Rance 4.1 ~Save the Medicine Plant!~
+
+; Text hook mode.
+;  none  : No text hook (default)
+;  print : Print text to console
+;  copy  : Automatically copy text to clipboard (for use with text hooker tools)
+texthook = none
+
+; Suppress text hook on specified scenario pages.
+; The value is a comma-separated list of page numbers.
+; The example below is for Rance 4.1, to filter out system messages.
+;texthook_suppress = 2,7
+
+; Censor list for Streamer Mode.
+; This mosaics images listed in the specified file, making them safe for
+; streaming or public viewing. The file should contain one image number
+; per line, with '#' treated as comments.
+;censor = censor_list.txt
+
+; Enables trace mode, which prints debug information to the console.
+;trace = true
+
+; The [string] section allows you to override Japanese text embedded in the
+; game engine. The values below are the original Japanese text.
+[string]
+back        = 戻る
+next_page   = 次のページ
+dps_custom  = カスタム
+dps_linus   = リーナス
+dps_katsumi = かつみ
+dps_yumiko  = 由美子
+dps_itsumi  = いつみ
+dps_hitomi  = ひとみ
+dps_mariko  = 真理子

@@ -1,0 +1,45 @@
+@charset "utf-8";
+#loader {
+    max-width: 640px;
+    margin: 2ex auto 0;
+    & h1 {
+        font-size: 1.6rem;
+    }
+    & ul {
+        list-style-type: none;
+    }
+    & li {
+        color: #5764c6;
+    }
+    & li:before {
+        font-family: FontAwesome;
+        content: "\f15b";
+        padding-right: 0.5em;
+    }
+    & li.notready {
+        color: #808080;
+    }
+    & li.notready:after {
+        content: " (unselected)";
+    }
+    & li[lang=ja].notready:after {
+        content: " (未選択)";
+    }
+    #unsupported {
+        max-width: 640px;
+        margin: 2ex auto 0;
+        color: red;
+    }
+    .language-selector {
+        text-align: right;
+    }
+}
+
+#loader.module-loading {
+    .hidden-while-loading {
+        display: none;
+    }
+    .show-while-loading {
+        display: block;
+    }
+}

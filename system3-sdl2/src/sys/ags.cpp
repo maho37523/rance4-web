@@ -1,0 +1,374 @@
+/*
+	ALICE SOFT SYSTEM 3 for Win32
+
+	[ AGS ]
+*/
+
+#include "ags.h"
+#include <ctype.h>
+#include <string.h>
+#include "game_id.h"
+#include "config.h"
+#include "fileio.h"
+
+extern SDL_Window* g_window;
+extern SDL_Renderer* g_renderer;
+
+namespace {
+
+const uint32 SCANLINE_ALPHA = 0x38;  // 0-255
+
+SDL_Texture* create_scanline_texture(SDL_Renderer* renderer, int width, int height)
+{
+	SDL_Surface* sf = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, SDL_PIXELFORMAT_ARGB8888);
+	for (int y = 0; y < height; y++) {
+		uint32* p = reinterpret_cast<uint32*>(surface_line(sf, y));
+		uint32 v = y % 2 ? (SCANLINE_ALPHA << 24) : 0;
+		for (int x = 0; x < width; x++) {
+			p[x] = v;
+		}
+	}
+	SDL_Texture* tx = SDL_CreateTextureFromSurface(renderer, sf);
+	SDL_SetTextureBlendMode(tx, SDL_BLENDMODE_BLEND);
+	SDL_FreeSurface(sf);
+	return tx;
+}
+
+} // namespace
+
+AGS::AGS(const Config& config, const GameId& game_id) : game_id(game_id)
+{
+	// 画面サイズ
+	if (game_id.is(GameId::GAKUEN_SENKI)) {
+		window_width = 582;
+		screen_width = 512;
+		window_height = screen_height = 424;
+	} else {
+		window_width = screen_width = 640;
+		window_height = screen_height = 400;
+	}
+
+	SDL_SetWindowSize(g_window, window_width, window_height);
+	SDL_RenderSetLogicalSize(g_renderer, window_width, window_height);
+	sdlTexture = SDL_CreateTexture(g_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, screen_width, screen_height);
+	scanline_texture = NULL;
+
+	// DIBSection 8bpp
+	for(int i = 0; i < NR_SCREENS; i++) {
+		hBmpScreen[i] = SDL_CreateRGBSurfaceWithFormat(0, 640, 480, 8, SDL_PIXELFORMAT_INDEX8);
+		vram[i] = reinterpret_cast<uint8_t(*)[640]>(hBmpScreen[i]->pixels);
+	}
+
+	// All surfaces share the same palette.
+	screen_palette = hBmpScreen[SCREEN_FRONT]->format->palette;
+	SDL_SetSurfacePalette(hBmpScreen[SCREEN_BACK], screen_palette);
+
+	if (!config.censor_list.empty())
+		load_censor_list(config.censor_list.c_str());
+
+	// フォント
+	TTF_Init();
+	if (!config.font_file.empty()) {
+		rw_font = open_file(config.font_file.c_str());
+		if (!rw_font)
+			sys_error("Cannot open font file %s", config.font_file.c_str());
+	} else {
+		rw_font = open_resource(FONT_RESOURCE_NAME, "fonts");
+		if (!rw_font)
+			sys_error("Cannot open default font");
+	}
+	hFont16 = TTF_OpenFontRW(rw_font, 0, 16);
+	SDL_RWseek(rw_font, 0, SEEK_SET);
+	hFont24 = TTF_OpenFontRW(rw_font, 0, 24);
+	SDL_RWseek(rw_font, 0, SEEK_SET);
+	hFont32 = TTF_OpenFontRW(rw_font, 0, 32);
+	SDL_RWseek(rw_font, 0, SEEK_SET);
+	hFont48 = TTF_OpenFontRW(rw_font, 0, 48);
+	SDL_RWseek(rw_font, 0, SEEK_SET);
+	hFont64 = TTF_OpenFontRW(rw_font, 0, 64);
+	if (!hFont16 || !hFont24 || !hFont32 || !hFont48 || !hFont64) {
+		sys_error("TTF_OpenFontRW failed: %s", TTF_GetError());
+	}
+	if (config.no_antialias)
+		ags_setAntialiasedStringMode(0);
+
+	// カーソル初期化
+	for(int i = 0; i < 10; i++) {
+		hCursor[i] = NULL;
+	}
+
+	// GAIJI.DAT読み込み
+	memset(gaiji, 0, sizeof(gaiji));
+
+	auto fio = FILEIO::open("GAIJI.DAT", FILEIO_READ_BINARY);
+	if (fio) {
+		int row, cell;
+		while ((cell = fio->getc()) != EOF) {
+			row = fio->getc();
+			if (0x76 <= row && row <= 0x77 && 0x21 <= cell && cell <= 0x7e) {
+				int idx = (row - 0x76) * 94 + (cell - 0x21);
+				fio->read(gaiji[idx], 32);
+			} else {
+				fio->seek(32, SEEK_CUR);
+			}
+		}
+	}
+	fio.reset();
+
+	// SYSTEM3 初期化
+
+	acg.open("ACG.DAT");
+
+	// パレット
+	program_palette = SDL_AllocPalette(256);
+	program_palette->colors[0x00] = {0x00, 0x00, 0x00, 0xff};
+	program_palette->colors[0x01] = {0x00, 0x00, 0xaa, 0xff};
+	program_palette->colors[0x02] = {0xaa, 0x00, 0x00, 0xff};
+	program_palette->colors[0x03] = {0xaa, 0x00, 0xaa, 0xff};
+	program_palette->colors[0x04] = {0x00, 0x00, 0x00, 0xff};
+	program_palette->colors[0x05] = {0x00, 0xaa, 0xaa, 0xff};
+	program_palette->colors[0x06] = {0xaa, 0xaa, 0x00, 0xff};
+	program_palette->colors[0x07] = {0xdd, 0xdd, 0xdd, 0xff};
+	program_palette->colors[0x08] = {0x77, 0x77, 0x77, 0xff};
+	program_palette->colors[0x09] = {0x00, 0x00, 0xff, 0xff};
+	program_palette->colors[0x0a] = {0xff, 0x00, 0x00, 0xff};
+	program_palette->colors[0x0b] = {0xff, 0x00, 0xff, 0xff};
+	program_palette->colors[0x0c] = {0x00, 0xff, 0x00, 0xff};
+	program_palette->colors[0x0d] = {0x00, 0xff, 0xff, 0xff};
+	program_palette->colors[0x0e] = {0xff, 0xff, 0x00, 0xff};
+	program_palette->colors[0x0f] = {0xff, 0xff, 0xff, 0xff};
+	if (game_id.sys_ver == 1) {
+		program_palette->colors[0x10] = {0x00, 0x00, 0x00, 0xff};
+		program_palette->colors[0x11] = {0x00, 0x00, 0xff, 0xff};
+		program_palette->colors[0x12] = {0xff, 0x00, 0x00, 0xff};
+		program_palette->colors[0x13] = {0xff, 0x00, 0xff, 0xff};
+		program_palette->colors[0x14] = {0x00, 0xff, 0x00, 0xff};
+		program_palette->colors[0x15] = {0x00, 0xff, 0xff, 0xff};
+		program_palette->colors[0x16] = {0xff, 0xff, 0x00, 0xff};
+		program_palette->colors[0x17] = {0xff, 0xff, 0xff, 0xff};
+		program_palette->colors[0x18] = {0x00, 0x00, 0x00, 0xff};
+		program_palette->colors[0x19] = {0x00, 0x00, 0xff, 0xff};
+		program_palette->colors[0x1a] = {0xff, 0x00, 0x00, 0xff};
+		program_palette->colors[0x1b] = {0xff, 0x00, 0xff, 0xff};
+		program_palette->colors[0x1c] = {0x00, 0xff, 0x00, 0xff};
+		program_palette->colors[0x1d] = {0x00, 0xff, 0xff, 0xff};
+		program_palette->colors[0x1e] = {0xff, 0xff, 0x00, 0xff};
+	}
+	program_palette->colors[0x1f] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0x2f] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0x3f] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0x4f] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0x5f] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0x6f] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0x7f] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0x8f] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0x9f] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0xaf] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0xbf] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0xcf] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0xdf] = {0xff, 0xff, 0xff, 0xff};
+	program_palette->colors[0xef] = {0xff, 0xff, 0xff, 0xff};
+
+	// To improve the quality of text antialiasing, preset the antialiasing
+	// colors for text drawn in the primary colors (red, green, blue, yellow,
+	// magenta, cyan, and white) on a black background.
+	for (int i = 1; i <= 7; i++) {
+		for (int j = 0; j <= 7; j++) {
+			int n = 255 * j / 7;
+			uint8_t r = (i & 4) ? n : 0;
+			uint8_t g = (i & 2) ? n : 0;
+			uint8_t b = (i & 1) ? n : 0;
+			program_palette->colors[0xc0 + i * 8 + j] = {r, g, b, 255};
+		}
+	}
+
+	SDL_SetPaletteColors(screen_palette, program_palette->colors, 0, 256);
+
+	// CG表示
+	cg_dest = std::nullopt;
+	palette_bank = -1;
+
+	// マウスカーソル
+	cursor_index = 0;
+
+	set_scanline_mode(config.scanline);
+}
+
+AGS::~AGS()
+{
+	// カーソル開放
+	for(int i = 0; i < 10; i++) {
+		if(hCursor[i]) {
+			SDL_FreeCursor(hCursor[i]);
+		}
+	}
+
+	// フォント開放
+	if (rw_font) {
+		TTF_CloseFont(hFont16);
+		TTF_CloseFont(hFont24);
+		TTF_CloseFont(hFont32);
+		TTF_CloseFont(hFont48);
+		TTF_CloseFont(hFont64);
+		SDL_RWclose(rw_font);
+	}
+
+	SDL_FreePalette(program_palette);
+
+	for(int i = 0; i < NR_SCREENS; i++) {
+		SDL_FreeSurface(hBmpScreen[i]);
+	}
+
+	SDL_DestroyTexture(sdlTexture);
+}
+
+void AGS::set_cg_file(const char *file_name)
+{
+	bmp_prefix = NULL;
+	if (game_id.sys_ver == 3) {
+		// あゆみちゃん物語 フルカラー実写版
+		if (!strcmp(file_name, "CGA000.BMP")) {
+			bmp_prefix = "CGA";
+			return;
+		} else if (!strcmp(file_name, "CGB000.BMP")) {
+			bmp_prefix = "CGB";
+			return;
+		}
+	}
+	acg.open(file_name);
+}
+
+void AGS::set_palette(int index, uint8_t r, uint8_t g, uint8_t b)
+{
+	SDL_Color color = {r, g, b, 255};
+	if (index < 16) {
+		color.r = (color.r & 0xf) * 0x11;
+		color.g = (color.g & 0xf) * 0x11;
+		color.b = (color.b & 0xf) * 0x11;
+	}
+	SDL_SetPaletteColors(screen_palette, &color, index, 1);
+	SDL_SetPaletteColors(program_palette, &color, index, 1);
+	dirty_rect = {0, 0, screen_width, screen_height};
+}
+
+std::vector<uint32_t> AGS::get_screen_palette() const
+{
+	std::vector<uint32_t> palette(256);
+	for (int i = 0; i < 256; i++) {
+		palette[i] = palR(i) << 16 | palG(i) << 8 | palB(i);
+	}
+	return palette;
+}
+
+void AGS::invalidate_screen(int sx, int sy, int width, int height)
+{
+	SDL_Rect rect = {sx, sy, width, height};
+	SDL_Rect screen_rect = {0, 0, screen_width, screen_height};
+	SDL_IntersectRect(&rect, &screen_rect, &rect);
+	SDL_UnionRect(&dirty_rect, &rect, &dirty_rect);
+}
+
+void AGS::update_screen()
+{
+	if (!SDL_RectEmpty(&dirty_rect)) {
+		SDL_Surface *sf;
+		SDL_LockTextureToSurface(sdlTexture, &dirty_rect, &sf);
+		SDL_BlitSurface(hBmpScreen[SCREEN_FRONT], &dirty_rect, sf, NULL);
+		SDL_UnlockTexture(sdlTexture);
+		dirty_rect = {};
+	}
+
+	SDL_RenderClear(g_renderer);
+	SDL_Rect src = {0, 0, screen_width, screen_height};
+	SDL_Rect dest = {0, 0, window_width, screen_height};
+	if (scroll > 0) {
+		src.y = scroll;
+		src.h = dest.h = screen_height - scroll;
+	} else if (scroll < 0) {
+		dest.y = -scroll;
+		src.h = dest.h = screen_height + scroll;
+	}
+	SDL_RenderCopy(g_renderer, sdlTexture, &src, &dest);
+
+	if (fade_level) {
+		SDL_SetRenderDrawBlendMode(g_renderer, SDL_BLENDMODE_BLEND);
+		SDL_SetRenderDrawColor(g_renderer, fade_color, fade_color, fade_color, fade_level);
+		SDL_RenderFillRect(g_renderer, NULL);
+		SDL_SetRenderDrawColor(g_renderer, 0, 0, 0, 255);
+		SDL_SetRenderDrawBlendMode(g_renderer, SDL_BLENDMODE_NONE);
+	}
+	if (scanline_texture)
+		SDL_RenderCopy(g_renderer, scanline_texture, NULL, NULL);
+	SDL_RenderPresent(g_renderer);
+}
+
+void AGS::set_scanline_mode(bool enable)
+{
+	if (enable && !scanline_texture) {
+		scanline_texture = create_scanline_texture(g_renderer, screen_width, screen_height);
+	} else if (!enable && scanline_texture) {
+		SDL_DestroyTexture(scanline_texture);
+		scanline_texture = NULL;
+	}
+}
+
+bool AGS::save_screenshot(const char* path)
+{
+	SDL_Surface* sf = SDL_CreateRGBSurface(0, screen_width, screen_height, 32, 0, 0, 0, 0);
+	SDL_BlitSurface(hBmpScreen[SCREEN_FRONT], NULL, sf, NULL);
+
+	if (scanline_texture) {
+		SDL_Renderer* renderer = SDL_CreateSoftwareRenderer(sf);
+		SDL_Texture *tx = create_scanline_texture(renderer, screen_width, screen_height);
+		SDL_RenderCopy(renderer, tx, NULL, NULL);
+		SDL_DestroyTexture(tx);
+		SDL_DestroyRenderer(renderer);
+	}
+
+	bool ok = SDL_SaveBMP(sf, path) == 0;
+	if (!ok) {
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "system3",
+								 SDL_GetError(), g_window);
+		SDL_ClearError();
+	}
+
+	SDL_FreeSurface(sf);
+	return ok;
+}
+
+void AGS::load_censor_list(const char* fname)
+{
+	censor_list.clear();
+	if (!fname || !*fname)
+		return;
+
+	FILE *fp = fopen(fname, "r");
+	if (!fp) {
+		ERROR("failed to open %s", fname);
+		return;
+	}
+
+	char line[256];
+	int line_no = 0;
+	while (fgets(line, sizeof(line), fp)) {
+		line_no++;
+		char* p = line;
+		char* comment = strchr(p, '#');
+		if (comment)
+			*comment = '\0';
+		while (*p && isspace((unsigned char)*p))
+			p++;
+		if (*p == '\0')
+			continue;
+
+		char *endptr;
+		censor_list.insert(strtol(p, &endptr, 10));
+
+		while (*endptr && isspace((unsigned char)*endptr))
+			endptr++;
+		if (*endptr != '\0')
+			WARNING("%s:%d: syntax error", fname, line_no);
+	}
+
+	fclose(fp);
+}

@@ -1,0 +1,36 @@
+name: Windows (MSVS) Build
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: ["Win32", "x64"]
+        include:
+          - arch: "Win32"
+            package: "system3-sdl2-msvc-32bit"
+          - arch: "x64"
+            package: "system3-sdl2-msvc-64bit"
+    name: MSVS ${{ matrix.arch }}
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v6
+      with:
+        submodules: true
+
+    - name: Build
+      run: |
+        mkdir out
+        cd out
+        cmake -A ${{ matrix.arch }} -DCMAKE_COMPILE_WARNING_AS_ERROR=YES ../
+        cmake --build . --config Release
+        cmake --install . --prefix artifacts
+        cp ../COPYING.txt artifacts/
+
+    - name: Upload
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.package }}
+        path: out/artifacts
