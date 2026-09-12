@@ -11,7 +11,7 @@ function imageFetch(request) {
     status: 206,
     headers: {
       'Content-Length': '1',
-      'Content-Range': 'bytes 0-0/100',
+      'Content-Range': 'bytes 0-0/687324960',
       'Content-Type': 'application/octet-stream',
     },
   });
@@ -24,7 +24,7 @@ test('allows one bounded IMG range and preserves CORS/range metadata', async () 
   const response = await handleRequest(request, imageFetch);
   assert.equal(response.status, 206);
   assert.equal(response.headers.get('Access-Control-Allow-Origin'), origin);
-  assert.equal(response.headers.get('Content-Range'), 'bytes 0-0/100');
+  assert.equal(response.headers.get('Content-Range'), 'bytes 0-0/687324960');
   assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [7]);
 });
 
@@ -48,10 +48,21 @@ test('rejects unbounded, multi-range and query-string IMG requests before upstre
 test('rejects an upstream range mismatch instead of relaying it', async () => {
   const badUpstream = () => new Response(new Uint8Array([7]), {
     status: 206,
-    headers: {'Content-Length': '1', 'Content-Range': 'bytes 1-1/100'},
+    headers: {'Content-Length': '1', 'Content-Range': 'bytes 1-1/687324960'},
   });
   const response = await handleRequest(new Request(`${site}/v1/ranceking/cd.img`, {
     headers: {Range: 'bytes=0-0'},
   }), badUpstream);
   assert.equal(response.status, 502);
+});
+
+test('serves only a fixed ALD with an exact expected length', async () => {
+  const response = await handleRequest(new Request(`${site}/v1/ranceking/SA.ALD`, {
+    headers: {Origin: origin},
+  }), () => new Response(new Uint8Array(3912464), {
+    status: 200, headers: {'Content-Length': '3912464'},
+  }));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Content-Length'), '3912464');
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), origin);
 });

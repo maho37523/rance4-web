@@ -1,15 +1,17 @@
 /**
- * A deliberately narrow Internet Archive proxy for the browser CD loader.
- * Replace the two TODO constants after publishing the permitted archive.
+ * A deliberately narrow GitHub Release proxy for the browser CD loader.
+ * Keep the immutable tag: GitHub's final release-assets URL is signed and
+ * expires, whereas this stable URL safely redirects to a fresh one.
  */
-export const ARCHIVE_IDENTIFIER = "TODO_REPLACE_WITH_ARCHIVE_IDENTIFIER";
-export const ARCHIVE_FILES = Object.freeze({
-  img: "TODO_REPLACE_WITH_CD_IMAGE_FILENAME.img",
-  cue: "TODO_REPLACE_WITH_CUE_FILENAME.cue",
+export const RELEASE_BASE_URL = "https://github.com/maho37523/rance4-web/releases/download/game-assets-v1";
+export const RELEASE_FILES = Object.freeze({
+  img: { name: "kichiku_CD-DA.img", size: 687324960 },
+  cue: { name: "kichiku_CD-DA.cue", size: 1189 },
+  sa: { name: "SA.ALD", size: 3912464 },
+  ga: { name: "GA.ALD", size: 29178384 },
+  gb: { name: "GB.ALD", size: 19078928 },
+  wa: { name: "WA.ALD", size: 2150928 },
 });
-// Use the exact IA data node recorded for the approved item (for example,
-// https://ia123456.us.archive.org), never the redirecting general endpoint.
-export const ARCHIVE_HOST = "https://TODO_REPLACE_WITH_ARCHIVE_DATA_HOST";
 export const ALLOWED_ORIGIN = "https://maho37523.github.io";
 export const IMG_RANGE_LIMIT = 16 * 1024 * 1024;
 export const CUE_LIMIT = 1024 * 1024;
@@ -17,6 +19,10 @@ export const CUE_LIMIT = 1024 * 1024;
 const ROUTES = Object.freeze({
   "/v1/ranceking/cd.img": "img",
   "/v1/ranceking/cd.cue": "cue",
+  "/v1/ranceking/SA.ALD": "sa",
+  "/v1/ranceking/GA.ALD": "ga",
+  "/v1/ranceking/GB.ALD": "gb",
+  "/v1/ranceking/WA.ALD": "wa",
 });
 
 function corsHeaders(origin) {
@@ -49,7 +55,7 @@ function parseImgRange(value) {
 }
 
 function upstreamUrl(kind) {
-  return `${ARCHIVE_HOST}/download/${encodeURIComponent(ARCHIVE_IDENTIFIER)}/${encodeURIComponent(ARCHIVE_FILES[kind])}`;
+  return `${RELEASE_BASE_URL}/${encodeURIComponent(RELEASE_FILES[kind].name)}`;
 }
 
 function boundedBody(body, limit) {
@@ -73,17 +79,17 @@ async function proxyImg(request, fetchImpl) {
   const upstream = new Request(upstreamUrl("img"), {
     method: request.method,
     headers: new Headers([["Range", request.headers.get("Range")]]),
-    redirect: "error",
+    redirect: "follow",
   });
   const result = await fetchImpl(upstream);
   const contentRange = result.headers.get("Content-Range");
   const match = contentRange && /^bytes (0|[1-9][0-9]*)-(0|[1-9][0-9]*)\/(0|[1-9][0-9]*)$/.exec(contentRange);
-  if (result.status !== 206 || !match) return response(502, "Invalid archive response", request);
+  if (result.status !== 206 || !match) return response(502, "Invalid release response", request);
   const start = Number(match[1]);
   const end = Number(match[2]);
   const total = Number(match[3]);
-  if (!Number.isSafeInteger(total) || start !== range.start || end !== range.end || end < start || end >= total || end - start + 1 > IMG_RANGE_LIMIT) {
-    return response(502, "Invalid archive range", request);
+  if (!Number.isSafeInteger(total) || total !== RELEASE_FILES.img.size || start !== range.start || end !== range.end || end < start || end >= total || end - start + 1 > IMG_RANGE_LIMIT) {
+    return response(502, "Invalid release range", request);
   }
   const length = result.headers.get("Content-Length");
   if (length !== null && Number(length) !== end - start + 1) return response(502, "Invalid archive length", request);
@@ -93,12 +99,22 @@ async function proxyImg(request, fetchImpl) {
 }
 
 async function proxyCue(request, fetchImpl) {
-  const result = await fetchImpl(new Request(upstreamUrl("cue"), { method: request.method, redirect: "error" }));
+  const result = await fetchImpl(new Request(upstreamUrl("cue"), { method: request.method, redirect: "follow" }));
   const length = result.headers.get("Content-Length");
-  if (result.status !== 200 || (length !== null && (!/^\d+$/.test(length) || Number(length) > CUE_LIMIT))) return response(502, "Invalid archive response", request);
+  if (result.status !== 200 || length !== String(RELEASE_FILES.cue.size) || Number(length) > CUE_LIMIT) return response(502, "Invalid release response", request);
   const headers = [["Content-Type", result.headers.get("Content-Type") || "text/plain; charset=utf-8"]];
   if (length !== null) headers.push(["Content-Length", length]);
   return response(200, request.method === "HEAD" ? null : boundedBody(result.body, CUE_LIMIT), request, headers);
+}
+
+async function proxyAld(request, kind, fetchImpl) {
+  if (request.headers.has("Range")) return response(416, "Range is not supported for ALD files", request);
+  const result = await fetchImpl(new Request(upstreamUrl(kind), { method: request.method, redirect: "follow" }));
+  const length = result.headers.get("Content-Length");
+  if (result.status !== 200 || length !== String(RELEASE_FILES[kind].size)) return response(502, "Invalid release response", request);
+  return response(200, request.method === "HEAD" ? null : boundedBody(result.body, RELEASE_FILES[kind].size), request, [
+    ["Content-Type", "application/octet-stream"], ["Content-Length", length],
+  ]);
 }
 
 export async function handleRequest(request, fetchImpl = fetch) {
@@ -107,8 +123,11 @@ export async function handleRequest(request, fetchImpl = fetch) {
   if (!kind) return response(404, "Not found", request);
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(request.headers.get("Origin")) });
   if (request.method !== "GET" && request.method !== "HEAD") return response(405, "Method not allowed", request, [["Allow", "GET, HEAD, OPTIONS"]]);
-  try { return kind === "img" ? await proxyImg(request, fetchImpl) : await proxyCue(request, fetchImpl); }
-  catch { return response(502, "Archive unavailable", request); }
+  try {
+    if (kind === "img") return await proxyImg(request, fetchImpl);
+    if (kind === "cue") return await proxyCue(request, fetchImpl);
+    return await proxyAld(request, kind, fetchImpl);
+  } catch { return response(502, "Release unavailable", request); }
 }
 
 export default { fetch: (request, env, ctx) => handleRequest(request) };

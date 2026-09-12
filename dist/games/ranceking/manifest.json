@@ -1,9 +1,14 @@
 {
   "id": "ranceking",
   "name": "鬼畜王兰斯",
-  "published": false,
-  "baseUrl": "",
-  "files": [],
-  "imageUrl": "",
-  "cueUrl": ""
+  "published": true,
+  "baseUrl": "https://ranceking-archive-proxy.ljc787865.workers.dev/",
+  "files": [
+    {"path": "v1/ranceking/SA.ALD", "sha256": "f425fb4f9e03f7e7ec6b1893997c15e3b1f0de63e944fef18832ff2036f0b989"},
+    {"path": "v1/ranceking/GA.ALD", "sha256": "ff50c5246b5f4b43bb8d7136c59953330ebc872dc1ee4b5b406f377d80ab35cb"},
+    {"path": "v1/ranceking/GB.ALD", "sha256": "fe72fe04e60c18b147b07b506d1fe6cd7a12ab5b1c64d57fff2ad1748eeeb640"},
+    {"path": "v1/ranceking/WA.ALD", "sha256": "159612c81aa858fcd54a20215e6771bc55901b7c298a4302b4fd65398b810ce1"}
+  ],
+  "imageUrl": "v1/ranceking/cd.img",
+  "cueUrl": "v1/ranceking/cd.cue"
 }
