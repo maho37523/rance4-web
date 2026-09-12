@@ -120,6 +120,7 @@ function ascii_to_string(ptr: number): string {
 
 export type EmscriptenOptions = {
     canvas: HTMLCanvasElement;
+    locateFile?(path: string, prefix: string): string;
     print(str: string): void;
     printErr(str: string): void;
     preRun: Array<{ (m: EmscriptenModule): void }>;
