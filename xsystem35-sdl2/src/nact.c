@@ -57,6 +57,7 @@ MG コマンド: 表示時の ZH に依存
 
 /* 半角モード */
 static int msg_msgHankakuMode = 0; /* 0:全角 1:半角, 2: 無変換 */
+static bool character_encoding_locked;
 
 /* ゲームシステム情報 */
 static NACTINFO nactprv;
@@ -68,8 +69,14 @@ void sys_setHankakuMode(int mode) {
 }
 
 void sys_setCharacterEncoding(CharacterEncoding encoding) {
+	if (character_encoding_locked)
+		return;
 	nact->encoding = encoding;
 	v_set_encoding(encoding);
+}
+
+void sys_lockCharacterEncoding(bool lock) {
+	character_encoding_locked = lock;
 }
 
 /* 選択肢・通常メッセージ振り分け */

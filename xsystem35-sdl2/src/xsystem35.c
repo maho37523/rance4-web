@@ -152,6 +152,10 @@ static void sys35_init() {
 
 	nact_init();
 	sys_setCharacterEncoding(startup_encoding);
+	/* Chinese releases use legacy CP936 data. Some scenarios contain the
+	 * optional ZU encoding extension with a default value; it must not undo
+	 * the encoding selected by the trusted launcher. */
+	sys_lockCharacterEncoding(startup_encoding == GBK);
 
 	v_init();
 	

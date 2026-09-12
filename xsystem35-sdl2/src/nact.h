@@ -42,6 +42,9 @@
 extern void sys_addMsg(const char *str);
 extern void sys_setHankakuMode(int mode);
 extern void sys_setCharacterEncoding(CharacterEncoding encoding);
+/* A launcher-selected legacy encoding describes the complete scenario.
+ * Prevent an in-scenario ZU extension from accidentally reverting it. */
+extern void sys_lockCharacterEncoding(bool lock);
 
 extern void nact_main();
 extern void nact_init();
