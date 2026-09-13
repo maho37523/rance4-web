@@ -45,9 +45,14 @@ function remoteManifestUrls(manifest, gameRoot) {
   }
 }
 
-// Audio files the interpreters never read as game data.
-function isUnusedAudioPath(path) {
-  return /\.(mp3|ogg|wav)$/i.test(path);
+// Files the interpreters never read as game data.
+//   audio: isGameDataFile() skips mp3/ogg/wav (the runtime streams CD tracks
+//          from the disc image or reads BGM from an ALD)
+//   exe/dll: skipped as well, and the console logs "Skipping ..." for each
+// Rance 4's manifest listed 40 BGM tracks plus RANCE4CN.EXE: together 87 MB of
+// a 106 MB start transfer that the engine discarded unread.
+function isUnusedStartFile(path) {
+  return /\.(mp3|ogg|wav|exe|dll)$/i.test(path);
 }
 
 // Download one file in chunks with retries. A single fetch() of a 19-29 MB ALD
@@ -116,7 +121,7 @@ async function startRanceKing() {
     // either streams CD tracks from the disc image or reads BGM from an ALD.
     // Fetching it anyway made a published Rance 4 start transfer 82 MB of the
     // 106 MB payload before the title screen, which never finished on mobile.
-    const downloadable = remote.files.filter((entry) => !isUnusedAudioPath(entry.path));
+    const downloadable = remote.files.filter((entry) => !isUnusedStartFile(entry.path));
     for (let i = 0; i < downloadable.length; i++) {
       const entry = downloadable[i];
       status.textContent = `正在加载原始游戏文件：${i + 1} / ${downloadable.length}`;
@@ -157,7 +162,7 @@ async function startSelectedGame() {
     const files = [];
     const wanted = manifest.files
       .map((f) => typeof f === 'string' ? {path: f, publicPath: f} : f)
-      .filter((entry) => !isUnusedAudioPath(entry.path));
+      .filter((entry) => !isUnusedStartFile(entry.path));
     for (let i = 0; i < wanted.length; i++) {
       const entry = wanted[i];
       const path = entry.path;
