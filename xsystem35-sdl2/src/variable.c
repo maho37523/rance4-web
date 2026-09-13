@@ -64,6 +64,22 @@ void v_set_encoding(CharacterEncoding e) {
 	encoding = e;
 }
 
+CharacterEncoding v_get_encoding(void) {
+	return encoding;
+}
+
+int v_sysvar_max(void) {
+	return SYSVAR_MAX;
+}
+
+int v_page_max(void) {
+	return PAGE_MAX;
+}
+
+int v_longvar_max(void) {
+	return SYSVARLONG_MAX;
+}
+
 void v_set_names(int count, char **names) {
 	varname_cnt = count;
 	varnames = names;

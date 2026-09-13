@@ -73,6 +73,20 @@ drive Brave over CDP.
 | `livecheck.mjs` | Loads the **published** Pages URL to confirm the deployed build runs. |
 | `prepare-testdata.mjs` | Creates/removes `dist/games/ranceking-test/` and the `?game=rkt` launcher route so the harness can load local data. |
 | `probe_click.mjs`, `probe_mouse.mjs` | Isolated checks: does a CDP click reach the canvas, and does the engine see it. |
+| `verify-cheats.mjs` | Serves `dist/` only (no beacon collector) and verifies the trainer bridge against a running game. |
+
+`verify-cheats.mjs` is the regression for the walkthrough/trainer work:
+
+```sh
+node tools/diag/verify-cheats.mjs --game rance4     # or rance41 / rance42
+```
+
+It checks the `cheat_*` exports against evidence that does not come from the
+same code path: `cheat_page()` versus the pre-existing `_nact_current_page()`,
+`cheat_var_name()` versus an offline decode of `System39.ain`, the bulk
+pointer view versus the scalar getter, and a write/read/restore round trip.
+It also drives the trainer and guide dialogs and writes screenshots to
+`run/`. Results and hashes are recorded in `NOTES-cheats.md`.
 
 Typical loop:
 

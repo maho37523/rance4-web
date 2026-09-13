@@ -43,6 +43,7 @@ target_sources(xsystem35 PRIVATE
   ags.c
   cdrom.bgm.c
   cg.c
+  cheat.c
   cmd2F.c
   cmd2F60.c
   cmd_check.c

@@ -52,6 +52,10 @@ static inline int v_sliceSize(struct VarRef *r) {
 }
 
 void v_set_encoding(CharacterEncoding encoding);
+CharacterEncoding v_get_encoding(void);
+int v_sysvar_max(void);
+int v_page_max(void);
+int v_longvar_max(void);
 void v_set_names(int count, char **names);
 const char *v_name(int var);
 vmvar_t *v_ref_indexed(int var, int index, struct VarRef *ref);

@@ -315,3 +315,286 @@ dialog::backdrop {
         opacity: 0.2;
     }
 }
+
+/* ------------------------------------------------------------------ */
+/* Trainer (修改器)                                                     */
+/* ------------------------------------------------------------------ */
+
+#trainer {
+    width: min(960px, 94vw);
+    max-width: 94vw;
+}
+
+#trainer .modal-body {
+    max-height: 70vh;
+    overflow: auto;
+}
+
+.trainer-status,
+.guide-progress {
+    padding: .4rem 1rem;
+    color: #667085;
+    font-size: .85rem;
+    border-bottom: 1px solid #e6e9ef;
+}
+
+.trainer-tabs {
+    margin-bottom: .75rem;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 2;
+}
+
+.trainer-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .6rem;
+}
+
+.trainer-toolbar .form-input {
+    width: auto;
+    min-width: 8rem;
+}
+
+.trainer-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin: 0;
+}
+
+.trainer-inline .form-input {
+    width: 6rem;
+}
+
+.trainer-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.trainer-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .85rem;
+}
+
+.trainer-note,
+.trainer-hint,
+.trainer-summary {
+    color: #667085;
+    font-size: .85rem;
+}
+
+.trainer-note {
+    display: block;
+}
+
+.trainer-summary {
+    margin-left: auto;
+}
+
+.trainer-empty {
+    padding: .75rem;
+    background: #f6f7f9;
+    border-radius: .25rem;
+}
+
+.trainer-actions {
+    display: flex;
+    gap: .5rem;
+    margin-top: .6rem;
+}
+
+.trainer-table td,
+.trainer-table th {
+    vertical-align: middle;
+}
+
+.trainer-var-table .trainer-page-input,
+.trainer-page-input {
+    width: 7rem;
+}
+
+.trainer-search-results {
+    max-height: 18rem;
+    overflow: auto;
+    border: 1px solid #e6e9ef;
+    border-radius: .25rem;
+    padding: .4rem;
+}
+
+.trainer-search-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .15rem 0;
+}
+
+.trainer-search-row .trainer-mono {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.trainer-pages {
+    margin: .5rem 0;
+}
+
+.trainer-page-block {
+    border: 1px solid #e6e9ef;
+    border-radius: .25rem;
+    padding: .35rem .6rem;
+    margin-bottom: .35rem;
+}
+
+.trainer-page-items,
+.trainer-strings {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: .25rem .75rem;
+    margin-top: .5rem;
+}
+
+.trainer-page-item {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.trainer-page-item .form-input {
+    width: 6rem;
+}
+
+.trainer-sep {
+    color: #9aa4b2;
+}
+
+/* ------------------------------------------------------------------ */
+/* Guide (攻略)                                                        */
+/* ------------------------------------------------------------------ */
+
+#guide {
+    width: min(1000px, 94vw);
+    max-width: 94vw;
+}
+
+.guide-toolbar {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .4rem 1rem;
+    border-bottom: 1px solid #e6e9ef;
+}
+
+.guide-toolbar .guide-picker {
+    width: auto;
+}
+
+.guide-progress {
+    border-bottom: 0;
+    padding: 0;
+}
+
+.guide-body {
+    display: grid;
+    grid-template-columns: 14rem 1fr;
+    gap: 1rem;
+    max-height: 68vh;
+    overflow: hidden;
+}
+
+.guide-nav {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    overflow: auto;
+    border-right: 1px solid #e6e9ef;
+    padding-right: .5rem;
+}
+
+.guide-nav-item {
+    display: block;
+    padding: .3rem .5rem;
+    border-radius: .2rem;
+    color: #303742;
+    text-decoration: none;
+}
+
+.guide-nav-item:hover {
+    background: #f1f3f6;
+}
+
+.guide-nav-item.active {
+    background: #e8eefb;
+    font-weight: 600;
+}
+
+.guide-nav-item.current::after {
+    content: ' ← 当前';
+    color: #2f7d32;
+    font-size: .8rem;
+}
+
+.guide-nav-item.done {
+    color: #2f7d32;
+}
+
+.guide-nav-item.done::before {
+    content: '✓ ';
+}
+
+.guide-actions {
+    margin: 1rem 0;
+}
+
+.guide-done {
+    white-space: normal;
+}
+
+.guide-content {
+    overflow: auto;
+    padding-right: .5rem;
+}
+
+.guide-content h2 {
+    margin-top: 0;
+}
+
+.guide-summary {
+    color: #475467;
+}
+
+.guide-pages {
+    color: #667085;
+    font-size: .85rem;
+}
+
+.guide-note {
+    background: #fff8e5;
+    border-left: 3px solid #f0b429;
+    padding: .5rem .75rem;
+}
+
+.guide-sources {
+    font-size: .85rem;
+    color: #667085;
+}
+
+@media (max-width: 720px) {
+    .guide-body {
+        grid-template-columns: 1fr;
+    }
+
+    .guide-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        border-right: 0;
+        border-bottom: 1px solid #e6e9ef;
+        padding-bottom: .5rem;
+    }
+}
+

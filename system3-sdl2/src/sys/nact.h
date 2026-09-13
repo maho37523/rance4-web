@@ -69,6 +69,9 @@ public:
 	void set_var(int index, uint16_t value) { var[index] = value; }
 	const char* get_string(int index) const { return tvar[index].c_str(); }
 	void set_string(int index, const std::string& value) { tvar[index] = value; }
+	// Bulk access for the web trainer bridge: the variable table is contiguous
+	// and stable for the lifetime of the game.
+	uint16* var_data() { return var; }
 
 protected:
 	const Config& config;
