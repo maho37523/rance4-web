@@ -45,6 +45,53 @@ function remoteManifestUrls(manifest, gameRoot) {
   }
 }
 
+// Audio files the interpreters never read as game data.
+function isUnusedAudioPath(path) {
+  return /\.(mp3|ogg|wav)$/i.test(path);
+}
+
+// Download one file in chunks with retries. A single fetch() of a 19-29 MB ALD
+// is what made the public builds fail outright on mobile: one dropped
+// connection discarded the whole request.
+async function fetchGameFile(url, label) {
+  let total = 0;
+  try {
+    const head = await fetch(url, {headers: {Range: 'bytes=0-0'}});
+    if (head.status === 206) {
+      const m = /^bytes \d+-\d+\/(\d+)$/.exec(head.headers.get('Content-Range') || '');
+      if (m) total = Number(m[1]);
+    }
+  } catch {}
+  if (!total) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`无法读取 ${label}`);
+    return await res.blob();
+  }
+  const chunk = 4 << 20;
+  const parts = [];
+  for (let offset = 0; offset < total; offset += chunk) {
+    const end = Math.min(offset + chunk, total) - 1;
+    let lastError;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const res = await fetch(url, {headers: {Range: `bytes=${offset}-${end}`}});
+        if (res.status !== 206) throw new Error(`status ${res.status}`);
+        const blob = await res.blob();
+        if (blob.size !== end - offset + 1) throw new Error(`short chunk ${blob.size}`);
+        parts.push(blob);
+        lastError = undefined;
+        break;
+      } catch (e) {
+        lastError = e;
+        if (attempt === 4) throw new Error(`无法读取 ${label}：${e.message}`);
+        await new Promise((r) => setTimeout(r, 300 * Math.pow(2, attempt)));
+      }
+    }
+    if (lastError) throw new Error(`无法读取 ${label}`);
+  }
+  return new Blob(parts);
+}
+
 async function startRanceKing() {
   const game = 'ranceking';
   const gameInfo = games[game];
@@ -65,12 +112,15 @@ async function startRanceKing() {
       return;
     }
     const files = [];
-    for (let i = 0; i < remote.files.length; i++) {
-      const entry = remote.files[i];
-      status.textContent = `正在加载原始游戏文件：${i + 1} / ${remote.files.length}`;
-      const fileResponse = await fetch(entry.url);
-      if (!fileResponse.ok) throw new Error(`无法读取 ${entry.path}`);
-      files.push(new File([await fileResponse.blob()], entry.path.split('/').pop()));
+    // Audio is never handed to the interpreters as game data: the runtime
+    // either streams CD tracks from the disc image or reads BGM from an ALD.
+    // Fetching it anyway made a published Rance 4 start transfer 82 MB of the
+    // 106 MB payload before the title screen, which never finished on mobile.
+    const downloadable = remote.files.filter((entry) => !isUnusedAudioPath(entry.path));
+    for (let i = 0; i < downloadable.length; i++) {
+      const entry = downloadable[i];
+      status.textContent = `正在加载原始游戏文件：${i + 1} / ${downloadable.length}`;
+      files.push(new File([await fetchGameFile(entry.url, entry.path)], entry.path.split('/').pop()));
     }
     document.dispatchEvent(new CustomEvent('load-remote-files', {
       detail: {files, imageUrl: remote.imageUrl, cueUrl: remote.cueUrl, encoding: 'gbk'},
@@ -105,17 +155,16 @@ async function startSelectedGame() {
     if (!manifestResponse.ok) throw new Error('游戏资源尚未部署');
     const manifest = await manifestResponse.json();
     const files = [];
-    for (let i = 0; i < manifest.files.length; i++) {
-      const entry = typeof manifest.files[i] === 'string'
-        ? {path: manifest.files[i], publicPath: manifest.files[i]}
-        : manifest.files[i];
+    const wanted = manifest.files
+      .map((f) => typeof f === 'string' ? {path: f, publicPath: f} : f)
+      .filter((entry) => !isUnusedAudioPath(entry.path));
+    for (let i = 0; i < wanted.length; i++) {
+      const entry = wanted[i];
       const path = entry.path;
       const publicPath = entry.publicPath || path;
-      status.textContent = `正在加载原始游戏文件：${i + 1} / ${manifest.files.length}`;
+      status.textContent = `正在加载原始游戏文件：${i + 1} / ${wanted.length}`;
       const url = new URL(publicPath.split('/').map(encodeURIComponent).join('/'), gameRoot);
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`无法读取 ${path}`);
-      files.push(new File([await response.blob()], path.split('/').pop()));
+      files.push(new File([await fetchGameFile(url, path)], path.split('/').pop()));
     }
     const transfer = new DataTransfer();
     files.forEach((file) => transfer.items.add(file));

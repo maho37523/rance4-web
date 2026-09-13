@@ -22,12 +22,25 @@ ws.onmessage = (e) => { const m = JSON.parse(typeof e.data === 'string' ? e.data
   if (m.id && pend.has(m.id)) { const p = pend.get(m.id); pend.delete(m.id); m.error ? p.reject(new Error(JSON.stringify(m.error))) : p.resolve(m.result); return; }
   if (m.method === 'Runtime.consoleAPICalled') logs.push('[console] ' + m.params.args.map(a => a.value ?? a.description ?? a.type).join(' '));
   if (m.method === 'Runtime.exceptionThrown') logs.push('[exception] ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text));
-  if (m.method === 'Log.entryAdded') logs.push('[log:' + m.params.entry.level + '] ' + m.params.entry.text); };
+  if (m.method === 'Log.entryAdded') logs.push('[log:' + m.params.entry.level + '] ' + m.params.entry.text);
+  if (m.method === 'Network.loadingFailed') netFail.push(m.params.errorText + ' type=' + m.params.type);
+  if (m.method === 'Network.responseReceived') {
+    const r = m.params.response;
+    netDone.push({requestId: m.params.requestId, url: r.url, status: r.status, type: r.mimeType, len: 0});
+  }
+  if (m.method === 'Network.loadingFinished') {
+    for (let i = netDone.length - 1; i >= 0; i--) {
+      if (netDone[i].requestId === m.params.requestId) { netDone[i].len = m.params.encodedDataLength; break; }
+    }
+  } };
 const send = (method, params = {}, sid) => new Promise((res, rej) => { const i = ++id; pend.set(i, {resolve: res, reject: rej}); ws.send(JSON.stringify({id: i, method, params, ...(sid ? {sessionId: sid} : {})})); });
 const {targetId} = await send('Target.createTarget', {url: 'about:blank'});
 const {sessionId} = await send('Target.attachToTarget', {targetId, flatten: true});
 await send('Page.enable', {}, sessionId); await send('Runtime.enable', {}, sessionId);
 await send('Log.enable', {}, sessionId).catch(() => {});
+await send('Network.enable', {}, sessionId).catch(() => {});
+const netFail = [];
+const netDone = [];
 const evalp = async (expr) => { const r = await send('Runtime.evaluate', {expression: expr, returnByValue: true}, sessionId); if (r.exceptionDetails) throw new Error(r.exceptionDetails.text); return r.result?.value; };
 const shot = async (n) => { const {data} = await send('Page.captureScreenshot', {format: 'png'}, sessionId); const p = join(OUT, n + '.png'); await writeFile(p, Buffer.from(data, 'base64')); console.log('[live] shot', n); };
 await send('Page.navigate', {url: URL_}, sessionId);
@@ -58,6 +71,22 @@ while (Date.now() - t0 < 200000) {
   if (el > 45 && Date.now() - shotAt > 15000 && n < 10) { shotAt = Date.now(); await shot('t' + el); n++; }
 }
 await shot('final');
+console.log('--- network: total per URL (desc by bytes) ---');
+const byUrl = new Map();
+for (const n of netDone) {
+  const key = n.url.split('/').pop().split('?')[0];
+  const e = byUrl.get(key) || {n: 0, bytes: 0};
+  e.n++; e.bytes += n.len || 0;
+  byUrl.set(key, e);
+}
+let total = 0;
+for (const [k, v] of [...byUrl.entries()].sort((a, b) => b[1].bytes - a[1].bytes)) {
+  total += v.bytes;
+  if (v.bytes > 20000 || /ALD|img|cue|wasm/.test(k)) console.log(`  ${(v.bytes/1048576).toFixed(2)} MB  x${v.n}  ${k}`);
+}
+console.log(`  TOTAL ${(total/1048576).toFixed(1)} MB in ${netDone.length} requests`);
+console.log('--- network: failures ---');
+for (const n of netFail) console.log('  ' + n);
 for (const l of logs.slice(-25)) console.log(l);
 ws.close(); chrome.kill('SIGKILL');
 process.exit(0);

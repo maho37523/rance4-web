@@ -34,6 +34,85 @@ export function summarizeFileTypes(names: string[]): string {
 
 export type GameFileEntry = { name: string, load: () => Promise<Uint8Array[]> };
 
+/*
+ * True for audio the runtime never loads as game data.
+ *
+ * `isGameDataFile()` already skips these, so downloading them is pure waste:
+ * a published Rance 4 manifest lists 40 BGM tracks, and fetching them made a
+ * start transfer 82 MB of a 106 MB payload before the title screen appeared.
+ */
+export function isUnusedAudioFile(name: string): boolean {
+    return /\.(mp3|ogg|wav)$/i.test(name);
+}
+
+/*
+ * Download a remote file in chunks, retrying each chunk.
+ *
+ * A single fetch() of a multi-megabyte file is what made the public builds
+ * unreliable on mobile: the 19-29 MB ALDs each failed as one unretryable
+ * request.  Chunking bounds how much work a dropped connection discards, and
+ * the progress callback lets the launcher show movement.
+ */
+export async function fetchWithResume(url: string, onProgress?: (loaded: number, total: number) => void,
+                                      chunkSize = 4 << 20): Promise<ArrayBuffer> {
+    let total = 0;
+    let supportsRanges = false;
+    try {
+        const head = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+        if (head.status === 206) {
+            const m = head.headers.get('Content-Range')?.match(/^bytes \d+-\d+\/(\d+)$/);
+            if (m) { total = Number(m[1]); supportsRanges = total > 0; }
+        }
+    } catch { /* fall through to the whole-file path */ }
+
+    if (!supportsRanges)
+        return await fetchWholeWithRetry(url);
+
+    const out = new Uint8Array(total);
+    let offset = 0;
+    while (offset < total) {
+        const end = Math.min(offset + chunkSize, total) - 1;
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 5; attempt++) {
+            try {
+                const res = await fetch(url, { headers: { Range: `bytes=${offset}-${end}` } });
+                if (res.status !== 206)
+                    throw new Error(`range request failed (status ${res.status})`);
+                const buf = new Uint8Array(await res.arrayBuffer());
+                if (buf.length !== end - offset + 1)
+                    throw new Error(`short chunk: got ${buf.length}, want ${end - offset + 1}`);
+                out.set(buf, offset);
+                lastError = undefined;
+                break;
+            } catch (e) {
+                lastError = e;
+                if (attempt === 4) throw e;
+                await new Promise(r => setTimeout(r, 300 * Math.pow(2, attempt)));
+            }
+        }
+        if (lastError) throw lastError;
+        offset = end + 1;
+        onProgress?.(offset, total);
+    }
+    return out.buffer;
+}
+
+async function fetchWholeWithRetry(url: string): Promise<ArrayBuffer> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`status ${res.status}`);
+            return await res.arrayBuffer();
+        } catch (e) {
+            lastError = e;
+            if (attempt === 4) throw e;
+            await new Promise(r => setTimeout(r, 300 * Math.pow(2, attempt)));
+        }
+    }
+    throw lastError;
+}
+
 export abstract class LoaderSource {
     protected abstract createCDDALoader(): CDDALoader;
     protected abstract doLoad(): Promise<void>;
