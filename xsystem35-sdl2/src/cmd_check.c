@@ -158,8 +158,11 @@ static void undeferr() {
 static void message(int c0) {
 	char buf[512];
 	char *p = buf;
+	char *limit = buf + sizeof(buf) - 1;   /* keep room for the terminator */
 
 	while (c0 == 0x20 || c0 >= 0x80) {
+		if (p >= limit)
+			break;
 		if (nact->encoding == UTF8) {
 			*p++ = (char)c0;
 		} else if (nact->encoding == GBK) {
@@ -184,6 +187,29 @@ static void message(int c0) {
 			*p++ = (char)c0; *p++ = (char)sl_getc();
 		}
 		c0 = sl_getc();
+		/*
+		 * A text run is not length-prefixed: it ends at the first byte that is
+		 * neither a space nor a lead byte.  Page 7 of the Chinese SA.ALD ends
+		 * its last text table exactly at the page boundary, so the run reaches
+		 * the end of the page without that terminator.  sl_getc() reports 0
+		 * past the page end, which is treated as a terminator below, but the
+		 * read head must not be left there: subsequent commands would then be
+		 * decoded from whatever follows the page.  Inside a near-call the
+		 * caller's return address is the only meaningful continuation, so
+		 * return to it.  sl_retNear() rewinds the head itself, so this path
+		 * must not fall through to sl_ungetc().
+		 */
+		if (sl_sco_size > 0 && sl_getIndex() >= sl_sco_size) {
+			if (sl_hasNearCall()) {
+				sl_retNear();
+				if (p != buf) {
+					*p = '\0';
+					sys_addMsg(buf);
+				}
+				return;
+			}
+			break;
+		}
 	}
 	sl_ungetc();
 	if (p != buf) {

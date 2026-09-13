@@ -60,6 +60,12 @@ extern bool sl_is_s380;
 extern const uint8_t *sl_sco; // scenario page buffer
 extern int sl_page;        // current scenario page (0-based)
 extern int sl_index;       // cureent scenario address
+extern int sl_sco_size;    // size of the current scenario page buffer
+/*
+ * A scenario page starts with a header ("S350" magic, entry index, sizes);
+ * the executable body begins here, and the ALD entry's own ptr field is 32.
+ */
+#define SL_BODY_OFFSET 32
 
 bool sl_init(void);
 bool sl_reinit(void);
@@ -78,6 +84,7 @@ bool sl_jmpFar(int page);
 bool sl_jmpFar2(int page, int address);
 void sl_callNear(int address);
 void sl_retNear(void);
+bool sl_hasNearCall(void);
 void sl_callFar(int page);
 void sl_callFar2(int page, int address);
 void sl_retFar(void);
@@ -105,7 +112,23 @@ void sl_restoreTextSize(uint8_t type, int size);
 
 static inline int sl_getIndex(void) { return sl_index; }
 static inline int sl_getPage(void) { return sl_page; }
-static inline int sl_getc(void) { return sl_sco[sl_index++]; }
+/*
+ * Bounded scenario read.
+ *
+ * The original code indexed sl_sco[sl_index++] unconditionally, so a text run
+ * that reaches the end of a scenario page walked the read head out of the
+ * buffer.  The Chinese SA.ALD does exactly that on page 7 (see message() in
+ * cmd_check.c), and on wasm the overrun is a hard "memory access out of
+ * bounds".  Returning 0 at the page end keeps the head inside the buffer and
+ * gives the text-run reader a deterministic terminator; callers that need to
+ * distinguish "real NUL" from "past the end" compare sl_getIndex() against
+ * sl_sco_size.
+ */
+static inline int sl_getc(void) {
+	if (sl_sco_size > 0 && sl_index >= sl_sco_size)
+		return 0;
+	return sl_sco[sl_index++];
+}
 
 #define TRACE_UNIMPLEMENTED(fmt, ...) \
 	sys_message(2, "[UNIMPLEMENTED] " fmt "\n", ##__VA_ARGS__)

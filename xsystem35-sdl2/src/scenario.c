@@ -34,6 +34,7 @@
 #include "LittleEndian.h"
 
 const uint8_t *sl_sco;
+int sl_sco_size;
 int sl_page;
 int sl_index;
 bool sl_is_s380;
@@ -149,8 +150,12 @@ void sl_ungetc(void) {
 const char *sl_getString(char term) {
 	int c0;
 	char *index = strbuf;
+	char *limit = strbuf + sizeof(strbuf) - 1;
 
+	/* An unterminated string must not run off the end of strbuf. */
 	while ((c0 = sl_getc()) != (int)term) {
+		if (index >= limit)
+			break;
 		*index++ = c0;
 	}
 	*index = '\0';
@@ -170,6 +175,15 @@ const char *sl_getConstString(void) {
 
 /* @address */
 void sl_jmpNear(int address) {
+	/*
+	 * Keep the read head inside the current page.  The Chinese SA.ALD still
+	 * contains near-branch operands that point just past the end of their
+	 * (translated, shortened) page; following one walks out of the buffer and
+	 * aborts the wasm module with "memory access out of bounds".  Ignoring the
+	 * branch instead lets the page's own control flow continue.
+	 */
+	if (sl_sco_size > 0 && (address < 0 || address >= sl_sco_size))
+		return;
 	sl_index = address;
 }
 
@@ -188,8 +202,17 @@ bool sl_jmpFar(int page) {
 	}
 		
 	sl_sco   = dfile->data;
+	sl_sco_size = dfile->size;
 	sl_page  = page;
+	/*
+	 * The entry index in the page header must stay inside the page.  Page 7 of
+	 * the Chinese SA.ALD carries 1140 there while the page is 1058 bytes, so
+	 * trusting it would start the interpreter past the end of the buffer.
+	 * Fall back to the first body byte, where the page's own dispatch table is.
+	 */
 	sl_index = LittleEndian_getDW(sl_sco, 4);
+	if (sl_index < 0 || sl_index >= sl_sco_size)
+		sl_index = SL_BODY_OFFSET;
 	return true;
 }
 
@@ -208,6 +231,7 @@ bool sl_jmpFar2(int page, int address) {
 		return false;
 	}
 	sl_sco   = dfile->data;
+	sl_sco_size = dfile->size;
 	sl_page  = page;
 	sl_index = address;
 	return true;
@@ -218,6 +242,30 @@ void sl_callNear(int address) {
 	stack_push_dword(sl_index);
 	stack_push_byte(STACK_NEARCALL);
 	sl_jmpNear(address);
+}
+
+/*
+ * True when the most recent call frame is a near call.  message() uses this to
+ * decide whether an unterminated text run that reaches the page end can resume
+ * at the caller's return address.
+ */
+bool sl_hasNearCall(void) {
+	uint8_t *p = stack_top;
+	while (p > stack_buf) {
+		uint8_t tag = *--p;
+		if (tag == STACK_NEARCALL)
+			return true;
+		if (tag == STACK_FARCALL)
+			return false;
+		switch (tag) {
+		case STACK_VARIABLE:  p -= 2 + 2 + 2; break;
+		case STACK_TEXTCOLOR: p -= 1 + 1; break;
+		case STACK_TEXTSIZE:  p -= 1 + 4; break;
+		case STACK_TEXTLOC:   p -= 4 + 4; break;
+		default: return false;
+		}
+	}
+	return false;
 }
 
 void sl_retNear(void) {
