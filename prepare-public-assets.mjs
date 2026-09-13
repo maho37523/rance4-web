@@ -1,10 +1,15 @@
 import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
+// Game data lives beside the application checkout (see PUBLIC_DEPLOYMENT.md).
+// Override with GAMES_DIR to point at a different location.
+const gamesDir = process.env.GAMES_DIR
+  ? resolve(process.env.GAMES_DIR)
+  : resolve(import.meta.dirname, '..', 'games');
 const games = {
-  rance4: '/Users/cris/Documents/games/RANCE4',
-  rance41: '/Users/cris/Documents/games/RANCE4.1',
-  rance42: '/Users/cris/Documents/games/RANCE4.2',
+  rance4: join(gamesDir, 'RANCE4'),
+  rance41: join(gamesDir, 'RANCE4.1'),
+  rance42: join(gamesDir, 'RANCE4.2'),
 };
 const outputRoot = resolve('dist/games');
 

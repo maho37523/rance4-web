@@ -12,11 +12,12 @@ npm run build-public
 `npm run build-public` reads the local game directories below and creates the
 deployable `dist/games/` tree with one manifest per game. The public release
 commits this generated tree alongside the static runtime so a deployment can
-be rebuilt from its exact source revision:
+be rebuilt from its exact source revision. Game data lives in the `games/`
+folder beside this checkout (override with `GAMES_DIR` if it lives elsewhere):
 
-- `/Users/cris/Documents/games/RANCE4`
-- `/Users/cris/Documents/games/RANCE4.1`
-- `/Users/cris/Documents/games/RANCE4.2`
+- `<repo>/../games/RANCE4`
+- `<repo>/../games/RANCE4.1`
+- `<repo>/../games/RANCE4.2`
 
 Only root-level game files and `bgm/` are published. System 3 hint disks and
 bonus-media directories are excluded so a secondary `ADISK.dat` cannot be

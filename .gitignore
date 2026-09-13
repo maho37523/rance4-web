@@ -21,3 +21,12 @@ dist/fonts/MTLc3m.ttf.license
 dist/fonts/mincho.ttf
 dist/fonts/mincho.ttf.license
 dist/spessasynth_processor.min.js
+
+# Diagnostic tooling: large reference data and run output stay out of the repo.
+# tools/diag/testdata/SA-*.ALD (small regression fixtures) IS committed.
+tools/diag/ja/
+tools/diag/run/
+tools/diag/play/
+tools/diag/live/
+tools/diag/__pycache__/
+dist/games/ranceking-test/

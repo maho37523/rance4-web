@@ -5,7 +5,7 @@
 ## 启动
 
 ```sh
-cd /Users/cris/Documents/ChatGPT/兰斯4网页化/app
+cd app
 npm run local
 ```
 
@@ -15,11 +15,11 @@ npm run local
 npm run build-public
 ```
 
-该命令会从以下原始游戏目录生成 `dist/games/`；该目录是部署产物，默认不提交到源码仓库：
+该命令会从以下原始游戏目录生成 `dist/games/`；该目录是部署产物，默认不提交到源码仓库。游戏数据位于本仓库同级目录的 `games/` 文件夹（可用环境变量 `GAMES_DIR` 覆盖）：
 
-- `/Users/cris/Documents/games/RANCE4`
-- `/Users/cris/Documents/games/RANCE4.1`
-- `/Users/cris/Documents/games/RANCE4.2`
+- `<repo>/../games/RANCE4`
+- `<repo>/../games/RANCE4.1`
+- `<repo>/../games/RANCE4.2`
 
 4.1 和 4.2 的“提示盘”及附赠媒体会自动排除，避免与主游戏的 `ADISK.dat` 冲突；主游戏资源与 `bgm/` 音轨会被保留。
 
