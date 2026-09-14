@@ -134,33 +134,71 @@ async function cachedGameFile(entry, onProgress) {
 async function fetchGameFile(url, label, onProgress) {
   let total = 0;
   try {
-    const head = await fetch(url, {headers: {Range: 'bytes=0-0'}});
+    const head = await fetch(url, {headers: {'Range': 'bytes=0-0'}});
     if (head.status === 206) {
       const m = /^bytes \d+-\d+\/(\d+)$/.exec(head.headers.get('Content-Range') || '');
       if (m) total = Number(m[1]);
     }
   } catch {}
+
+  // Prefer one request for the whole archive.
+  //
+  // The release CDN does not reliably honour Range requests, and the proxy
+  // answers 502 ("Invalid release range") whenever the upstream ignores one.
+  // Chunking a 19-29 MiB ALD into 1 MiB pieces therefore multiplied the request
+  // count fourfold and turned a flaky upstream into a total load failure.
+  if (total > 0) {
+    try {
+      const blob = await fetchWholeWithRetry(url, total, onProgress);
+      if (blob) return blob;
+    } catch (e) {
+      console.warn(`${label}: 整包下载失败，改用分段续传：`, e);
+    }
+  }
+  return await fetchInChunks(url, label, total, onProgress);
+}
+
+async function fetchWholeWithRetry(url, total, onProgress) {
+  let lastError;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const blob = await res.blob();
+      if (total && blob.size !== total) throw new Error(`size ${blob.size} != ${total}`);
+      onProgress?.(blob.size, total, false);
+      return blob;
+    } catch (e) {
+      lastError = e;
+      if (attempt === 3) throw e;
+      await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt)));
+    }
+  }
+  throw lastError;
+}
+
+// Fallback only: the proxy limits one range to 4 MiB, so stay under that and
+// retry each piece.  Used when a single request cannot deliver the file.
+async function fetchInChunks(url, label, total, onProgress) {
   if (!total) {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`无法读取 ${label}`);
+    if (!res.ok) throw new Error(`无法读取 ${label}（${res.status}）`);
     const blob = await res.blob();
     onProgress?.(blob.size, blob.size, false);
     return blob;
   }
-  // A 4 MiB response still spends ~20 s on a 1.6 Mbps connection and can be
-  // cut short by mobile radios/proxies. One MiB keeps each retry short while
-  // retaining enough payload to avoid request-overhead dominated downloads.
-  const chunk = 1 << 20;
+  const chunk = 4 << 20;
   const parts = [];
+  let done = 0;
   for (let offset = 0; offset < total; offset += chunk) {
     const end = Math.min(offset + chunk, total) - 1;
     let lastError;
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        const res = await fetch(url, {headers: {Range: `bytes=${offset}-${end}`}});
+        const res = await fetch(url, {headers: {'Range': `bytes=${offset}-${end}`}});
         if (res.status !== 206) throw new Error(`status ${res.status}`);
-        const expectedRange = `bytes ${offset}-${end}/${total}`;
-        if (res.headers.get('Content-Range') !== expectedRange)
+        const expected = `bytes ${offset}-${end}/${total}`;
+        if (res.headers.get('Content-Range') !== expected)
           throw new Error(`unexpected range ${res.headers.get('Content-Range')}`);
         const blob = await res.blob();
         if (blob.size !== end - offset + 1) throw new Error(`short chunk ${blob.size}`);
@@ -170,11 +208,12 @@ async function fetchGameFile(url, label, onProgress) {
       } catch (e) {
         lastError = e;
         if (attempt === 4) throw new Error(`无法读取 ${label}：${e.message}`);
-        await new Promise((r) => setTimeout(r, 300 * Math.pow(2, attempt)));
+        await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt)));
       }
     }
     if (lastError) throw new Error(`无法读取 ${label}`);
-    onProgress?.(Math.min(offset + chunk, total), total, false);
+    done = end + 1;
+    onProgress?.(done, total, false);
   }
   return new Blob(parts);
 }
