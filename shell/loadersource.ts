@@ -6,7 +6,8 @@ import {CDDALoader, BGMLoader, CDDALoaderSource} from './cddaloader.js';
 import {detectEngine, isGameDataFile, registerDataFile} from './datafile.js';
 import * as iso9660 from './iso9660.js';
 import {loadModule, saveDirReady} from './moduleloader.js';
-import {getGbkFontBytes, gbkFontFileName} from './fontbytes.js';
+import {getGbkFontBytes, gbkFontFileName, prepareGbkFont} from './fontbytes.js';
+
 import {message} from './strings.js';
 import * as zip from './zip.js';
 
@@ -156,6 +157,10 @@ export abstract class LoaderSource {
         } else {
             await this.loadXsystem35();
         }
+        // Now that the module exists, fetch the GBK font once; the loop below
+        // then reuses those bytes for the game's own copy of the same file.
+        const gbkFontUrl = new URL(`games/rance4/${gbkFontFileName()}`, document.baseURI).href;
+        await prepareGbkFont(gbkFontUrl);
         for (const e of entries) {
             if (!isGameDataFile(engine, e.name)) {
                 console.log('Skipping ' + e.name);

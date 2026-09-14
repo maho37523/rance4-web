@@ -25,3 +25,24 @@ export function gbkFontReady(): boolean {
 export function gbkFontFileName(): string {
     return GBK_FONT_FILE;
 }
+
+/**
+ * Fetch the GBK font and install it at /fonts/.
+ *
+ * Must run after the engine module exists, because it writes into Module.FS.
+ * A failure is not fatal: the engine can fall back to a bundled font, so the
+ * game stays reachable.
+ */
+export async function prepareGbkFont(fontUrl: string): Promise<boolean> {
+    try {
+        const response = await fetch(fontUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = new Uint8Array(await response.arrayBuffer());
+        setGbkFontBytes(data);
+        Module!.FS.writeFile(`/fonts/${GBK_FONT_FILE}`, data);
+        return true;
+    } catch (error) {
+        console.warn('Unable to load the GBK fallback font:', error);
+        return false;
+    }
+}
