@@ -18,6 +18,10 @@ export function getGbkFontBytes(): Uint8Array | null {
     return bytes;
 }
 
+export function gbkFontReady(): boolean {
+    return bytes !== null;
+}
+
 export function gbkFontFileName(): string {
     return GBK_FONT_FILE;
 }

@@ -8,7 +8,7 @@ import {addToast} from './widgets.js';
 import * as midiPlayer from './midi.js';
 import * as volumeControl from './volume.js';
 import {message} from './strings.js';
-import {GBK_FONT_FILE, setGbkFontBytes} from './fontbytes.js';
+import {GBK_FONT_FILE, setGbkFontBytes, gbkFontReady} from './fontbytes.js';
 import { isDeflateSupported } from './zip.js';
 
 let cdSource: CDImageSource | undefined;
@@ -171,6 +171,11 @@ function handleFiles(files: FileList | File[]) {
 async function install(source: LoaderSource) {
     installing = true;
     try {
+        // Fetch the GBK font before the game files, so that if the game ships
+        // the same file (Rance 4 does) the loader can reuse these bytes rather
+        // than downloading 8 MB twice.
+        if (gameEncoding === 'gbk')
+            await prepareGbkFont();
         await source.startLoad();
         setCDDALoader(source.getCDDALoader());
         loaded(source.hasMidi);
@@ -210,7 +215,7 @@ function loaded(hasMidi: boolean) {
         Module!.arguments.push('-fm');
         if (gameEncoding) {
             Module!.arguments.push('-encoding', gameEncoding);
-            if (gameEncoding === 'gbk' && await prepareGbkFont()) {
+            if (gameEncoding === 'gbk' && gbkFontReady()) {
                 Module!.arguments.push('-ttfont_gothic', `/fonts/${GBK_FONT_FILE}`);
                 Module!.arguments.push('-ttfont_mincho', `/fonts/${GBK_FONT_FILE}`);
             }
