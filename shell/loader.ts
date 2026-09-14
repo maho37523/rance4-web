@@ -8,6 +8,7 @@ import {addToast} from './widgets.js';
 import * as midiPlayer from './midi.js';
 import * as volumeControl from './volume.js';
 import {message} from './strings.js';
+import {GBK_FONT_FILE, setGbkFontBytes} from './fontbytes.js';
 import { isDeflateSupported } from './zip.js';
 
 let cdSource: CDImageSource | undefined;
@@ -26,14 +27,15 @@ export interface RemoteLoadDetail {
 }
 
 let gameEncoding: RemoteLoadDetail['encoding'];
-const GBK_FONT_FILE = 'SourceHanSansCN-Normal.otf';
 
 async function prepareGbkFont(): Promise<boolean> {
     try {
         const url = new URL(`games/rance4/${GBK_FONT_FILE}`, document.baseURI);
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        Module!.FS.writeFile(`/fonts/${GBK_FONT_FILE}`, new Uint8Array(await response.arrayBuffer()));
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        setGbkFontBytes(bytes);
+        Module!.FS.writeFile(`/fonts/${GBK_FONT_FILE}`, bytes);
         return true;
     } catch (error) {
         // The engine can still start with its bundled font; keep the game

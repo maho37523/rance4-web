@@ -1,0 +1,23 @@
+// Shared state for the GBK font the shell installs for Chinese game data.
+//
+// Kept in its own module so loader.ts and loadersource.ts can both reach it
+// without importing each other: the game data may ship the very same font file
+// (Rance 4 declares it in .xsys35rc, and the engine applies that file after
+// argv, so it overrides -ttfont_gothic), and transferring those bytes twice is
+// 8 MB of the start payload.
+
+export const GBK_FONT_FILE = 'SourceHanSansCN-Normal.otf';
+
+let bytes: Uint8Array | null = null;
+
+export function setGbkFontBytes(value: Uint8Array) {
+    bytes = value;
+}
+
+export function getGbkFontBytes(): Uint8Array | null {
+    return bytes;
+}
+
+export function gbkFontFileName(): string {
+    return GBK_FONT_FILE;
+}
