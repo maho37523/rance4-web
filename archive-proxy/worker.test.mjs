@@ -66,3 +66,30 @@ test('serves only a fixed ALD with an exact expected length', async () => {
   assert.equal(response.headers.get('Content-Length'), '3912464');
   assert.equal(response.headers.get('Access-Control-Allow-Origin'), origin);
 });
+
+test('allows a bounded ALD range so mobile downloads can resume', async () => {
+  const request = new Request(`${site}/v1/ranceking/SA.ALD`, {
+    headers: {Origin: origin, Range: 'bytes=0-1023'},
+  });
+  const response = await handleRequest(request, (upstream) => {
+    assert.equal(upstream.headers.get('Range'), 'bytes=0-1023');
+    return new Response(new Uint8Array(1024), {
+      status: 206,
+      headers: {
+        'Content-Length': '1024',
+        'Content-Range': 'bytes 0-1023/3912464',
+      },
+    });
+  });
+  assert.equal(response.status, 206);
+  assert.equal(response.headers.get('Content-Range'), 'bytes 0-1023/3912464');
+  assert.equal(response.headers.get('Accept-Ranges'), 'bytes');
+  assert.equal((await response.arrayBuffer()).byteLength, 1024);
+});
+
+test('rejects oversized ALD ranges before upstream fetch', async () => {
+  const response = await handleRequest(new Request(`${site}/v1/ranceking/SA.ALD`, {
+    headers: {Range: 'bytes=0-4194304'},
+  }), () => assert.fail('must not fetch upstream'));
+  assert.equal(response.status, 416);
+});

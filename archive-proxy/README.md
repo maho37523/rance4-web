@@ -1,13 +1,26 @@
-# Internet Archive proxy (Cloudflare Workers Free)
+# 鬼畜王资源代理（Cloudflare Workers Free）
 
-这是一个有意限制范围的 Worker：只代理两个固定路径，不接受 URL、文件名或 Archive identifier 参数，也不连接 R2。将 `worker.js` 顶部的 `TODO_REPLACE_*` 常量替换为已获授权的 Internet Archive 标识、文件名和固定数据节点主机后，复制 `wrangler.toml.example` 为 `wrangler.toml`，使用 `npx wrangler deploy` 部署。
+这是一个固定白名单代理：只转发 GitHub Release 标签 `game-assets-v1` 中已知的鬼畜王文件；不接受任意 URL、文件名、查询参数或 R2 绑定。
 
 固定端点：
 
-- `GET`/`HEAD` `/v1/ranceking/cd.img`：必须是单段且有明确结束位置的 `Range: bytes=start-end`，且响应段不超过 16 MiB；无 Range、开放结尾/后缀 Range、多段、非法 Range 均为 `416`。
-- `GET`/`HEAD` `/v1/ranceking/cd.cue`：仅接受上游 `200`，响应体限制为 1 MiB。
-- `OPTIONS` 返回 `204`。仅 `https://maho37523.github.io` 获得 CORS 响应头；查询字符串、未知路径返回 `404`，其他方法返回 `405`。
+- `GET`/`HEAD` `/v1/ranceking/cd.img`：必须是单段、闭合 Range；最大 80 MiB。
+- `GET`/`HEAD` `/v1/ranceking/cd.cue`：仅接受固定长度的完整响应。
+- `GET`/`HEAD` `/v1/ranceking/{SA,GA,GB,WA}.ALD`：可完整下载，也支持最大 4 MiB 的单段 Range，供移动端断点续传。
+- `OPTIONS` 返回 `204`；只有 `https://maho37523.github.io` 获得 CORS 响应头。
 
-上游 URL 是固定的 Internet Archive `/download/...` URL，所有请求使用 `redirect: "error"`；IMG 必须严格得到 `206` 和匹配的 `Content-Range`。响应以流方式传回，并暴露浏览器读取 Range 所需的 headers。
+移动端策略：网页将 ALD 分块下载、失败时只重试当前块，并在完整下载成功后写入浏览器 Cache Storage。再次启动优先从缓存读取。CD 镜像继续按游戏需要读取范围，绝不预下载整张镜像。
 
-本地快速检查：`node --input-type=module` 导入 `handleRequest` 并注入 mock `fetch`，即可无需 Cloudflare 账号测试路由和上游校验。部署前必须把 TODO 常量换成真实值，并确认资源拥有公开访问权限。
+本地验证：
+
+```sh
+node --test archive-proxy/worker.test.mjs
+```
+
+部署前将 `wrangler.toml.example` 复制为本机未跟踪的 `wrangler.toml`，确认 Worker 名称与登录账户无误，然后运行：
+
+```sh
+npx wrangler deploy
+```
+
+部署后应从公开 Pages Origin 对任一 ALD 发起 `Range: bytes=0-1023`，确认响应为 `206` 且包含正确的 `Content-Range`。

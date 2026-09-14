@@ -17,6 +17,10 @@ export const ALLOWED_ORIGIN = "https://maho37523.github.io";
 // largest track is 44,370,480 bytes, so 80 MiB is the smallest practical
 // safety ceiling while still rejecting a whole-disc download.
 export const IMG_RANGE_LIMIT = 80 * 1024 * 1024;
+// The launcher resumes ALD downloads in 4 MiB pieces. Keep the edge limit
+// aligned with that client contract so a flaky mobile connection retries a
+// piece rather than a 19–29 MiB file.
+export const ALD_RANGE_LIMIT = 4 * 1024 * 1024;
 export const CUE_LIMIT = 1024 * 1024;
 
 const ROUTES = Object.freeze({
@@ -45,7 +49,7 @@ function response(status, body, request, headers) {
   return new Response(body, { status, headers: h });
 }
 
-function parseImgRange(value) {
+function parseRange(value, limit) {
   if (!value) return null;
   // Only one forward range is supported. Suffix ranges and comma lists are not.
   const match = /^bytes=(0|[1-9][0-9]*)-(0|[1-9][0-9]*)$/.exec(value);
@@ -53,7 +57,7 @@ function parseImgRange(value) {
   const start = Number(match[1]);
   const end = Number(match[2]);
   if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || end < start) return null;
-  if (end - start + 1 > IMG_RANGE_LIMIT) return null;
+  if (end - start + 1 > limit) return null;
   return { start, end };
 }
 
@@ -77,7 +81,7 @@ function boundedBody(body, limit) {
 }
 
 async function proxyImg(request, fetchImpl) {
-  const range = parseImgRange(request.headers.get("Range"));
+  const range = parseRange(request.headers.get("Range"), IMG_RANGE_LIMIT);
   if (!range) return response(416, "Invalid Range", request, [["Accept-Ranges", "bytes"]]);
   const upstream = new Request(upstreamUrl("img"), {
     method: request.method,
@@ -111,8 +115,23 @@ async function proxyCue(request, fetchImpl) {
 }
 
 async function proxyAld(request, kind, fetchImpl) {
-  if (request.headers.has("Range")) return response(416, "Range is not supported for ALD files", request);
-  const result = await fetchImpl(new Request(upstreamUrl(kind), { method: request.method, redirect: "follow" }));
+  const rangeHeader = request.headers.get("Range");
+  const range = rangeHeader ? parseRange(rangeHeader, ALD_RANGE_LIMIT) : null;
+  if (rangeHeader && !range) return response(416, "Invalid Range", request, [["Accept-Ranges", "bytes"]]);
+  const headers = range ? new Headers([["Range", rangeHeader]]) : undefined;
+  const result = await fetchImpl(new Request(upstreamUrl(kind), { method: request.method, headers, redirect: "follow" }));
+  if (range) {
+    const contentRange = result.headers.get("Content-Range");
+    const match = contentRange && /^bytes (0|[1-9][0-9]*)-(0|[1-9][0-9]*)\/(0|[1-9][0-9]*)$/.exec(contentRange);
+    const length = result.headers.get("Content-Length");
+    if (result.status !== 206 || !match || Number(match[1]) !== range.start || Number(match[2]) !== range.end ||
+        Number(match[3]) !== RELEASE_FILES[kind].size || (length !== null && Number(length) !== range.end - range.start + 1))
+      return response(502, "Invalid release range", request);
+    const outHeaders = [["Accept-Ranges", "bytes"], ["Content-Range", contentRange],
+      ["Content-Type", "application/octet-stream"]];
+    if (length !== null) outHeaders.push(["Content-Length", length]);
+    return response(206, request.method === "HEAD" ? null : boundedBody(result.body, ALD_RANGE_LIMIT), request, outHeaders);
+  }
   const length = result.headers.get("Content-Length");
   if (result.status !== 200 || length !== String(RELEASE_FILES[kind].size)) return response(502, "Invalid release response", request);
   return response(200, request.method === "HEAD" ? null : boundedBody(result.body, RELEASE_FILES[kind].size), request, [

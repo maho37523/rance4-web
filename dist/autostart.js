@@ -37,7 +37,7 @@ function remoteManifestUrls(manifest, gameRoot) {
       const urlValue = typeof item.url === 'string' && item.url ? item.url : item.publicPath || item.path;
       if (typeof urlValue !== 'string' || !urlValue)
         throw new Error(`发布清单缺少 ${item.path} 的 URL`);
-      return {path: item.path, url: resolve(urlValue)};
+      return {path: item.path, url: resolve(urlValue), version: typeof item.sha256 === 'string' ? item.sha256 : ''};
     });
     return {files, imageUrl: resolve(manifest.imageUrl).href, cueUrl: resolve(manifest.cueUrl).href};
   } catch (error) {
@@ -93,7 +93,45 @@ function isUnusedStartFile(path) {
 // Download one file in chunks with retries. A single fetch() of a 19-29 MB ALD
 // is what made the public builds fail outright on mobile: one dropped
 // connection discarded the whole request.
-async function fetchGameFile(url, label) {
+const RANCEKING_CACHE = 'ranceking-game-data-v1';
+
+function rancekingCacheKey(entry) {
+  // This is a Cache Storage key only; it is never sent over the network.  The
+  // asset hash makes a released data update naturally invalidate old files.
+  const id = encodeURIComponent(`${entry.path}:${entry.version || entry.url}`);
+  return new Request(new URL(`__ranceking_cache__/${id}`, document.baseURI).href);
+}
+
+async function cachedGameFile(entry, onProgress) {
+  let cache;
+  try {
+    cache = await caches.open(RANCEKING_CACHE);
+    const hit = await cache.match(rancekingCacheKey(entry));
+    if (hit) {
+      const blob = await hit.blob();
+      if (blob.size > 0) {
+        onProgress?.(blob.size, blob.size, true);
+        return blob;
+      }
+    }
+  } catch (e) {
+    // Storage can be unavailable in private mode or under quota pressure. A
+    // normal network load must still work in that case.
+    console.warn('游戏缓存不可用，改用网络加载：', e);
+  }
+
+  const blob = await fetchGameFile(entry.url, entry.path, onProgress);
+  if (cache) {
+    try {
+      await cache.put(rancekingCacheKey(entry), new Response(blob));
+    } catch (e) {
+      console.warn('无法保存游戏缓存：', e);
+    }
+  }
+  return blob;
+}
+
+async function fetchGameFile(url, label, onProgress) {
   let total = 0;
   try {
     const head = await fetch(url, {headers: {Range: 'bytes=0-0'}});
@@ -105,7 +143,9 @@ async function fetchGameFile(url, label) {
   if (!total) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`无法读取 ${label}`);
-    return await res.blob();
+    const blob = await res.blob();
+    onProgress?.(blob.size, blob.size, false);
+    return blob;
   }
   const chunk = 4 << 20;
   const parts = [];
@@ -128,8 +168,44 @@ async function fetchGameFile(url, label) {
       }
     }
     if (lastError) throw new Error(`无法读取 ${label}`);
+    onProgress?.(Math.min(offset + chunk, total), total, false);
   }
   return new Blob(parts);
+}
+
+async function downloadGameFiles(entries, status) {
+  const files = new Array(entries.length);
+  const loaded = new Array(entries.length).fill(0);
+  const totals = new Array(entries.length).fill(0);
+  const cached = new Array(entries.length).fill(false);
+  const renderProgress = () => {
+    const done = loaded.reduce((sum, value) => sum + value, 0);
+    const known = totals.reduce((sum, value) => sum + value, 0);
+    const complete = files.filter(Boolean).length;
+    const cacheCount = cached.filter(Boolean).length;
+    const amount = known > 0 ? `，${(done / 1048576).toFixed(1)} / ${(known / 1048576).toFixed(1)} MB` : '';
+    const reused = cacheCount > 0 ? `，已复用缓存 ${cacheCount} 个` : '';
+    status.textContent = `正在加载原始游戏文件：${complete} / ${entries.length}${amount}${reused}`;
+  };
+  let next = 0;
+  const worker = async () => {
+    while (next < entries.length) {
+      const i = next++;
+      const entry = entries[i];
+      const blob = await cachedGameFile(entry, (current, total, fromCache) => {
+        loaded[i] = current;
+        totals[i] = total;
+        cached[i] = fromCache;
+        renderProgress();
+      });
+      files[i] = new File([blob], entry.path.split('/').pop());
+      renderProgress();
+    }
+  };
+  // Two connections keep mobile radio throughput busy without creating four
+  // simultaneous multi-megabyte buffers and triggering memory pressure.
+  await Promise.all(Array.from({length: Math.min(2, entries.length)}, worker));
+  return files;
 }
 
 async function startRanceKing() {
@@ -151,17 +227,12 @@ async function startRanceKing() {
       showLocalImport(game);
       return;
     }
-    const files = [];
     // Audio is never handed to the interpreters as game data: the runtime
     // either streams CD tracks from the disc image or reads BGM from an ALD.
     // Fetching it anyway made a published Rance 4 start transfer 82 MB of the
     // 106 MB payload before the title screen, which never finished on mobile.
     const downloadable = remote.files.filter((entry) => !isUnusedStartFile(entry.path));
-    for (let i = 0; i < downloadable.length; i++) {
-      const entry = downloadable[i];
-      status.textContent = `正在加载原始游戏文件：${i + 1} / ${downloadable.length}`;
-      files.push(new File([await fetchGameFile(entry.url, entry.path)], entry.path.split('/').pop()));
-    }
+    const files = await downloadGameFiles(downloadable, status);
     // Music kept out of the download above still has to reach the player.
     const bgm = await collectBgmTracks(remote.files.map((e) => ({path: e.path, url: e.url})));
     document.dispatchEvent(new CustomEvent('load-remote-files', {
