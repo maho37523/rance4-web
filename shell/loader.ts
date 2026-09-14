@@ -8,7 +8,6 @@ import {addToast} from './widgets.js';
 import * as midiPlayer from './midi.js';
 import * as volumeControl from './volume.js';
 import {message} from './strings.js';
-import {GBK_FONT_FILE, gbkFontReady} from './fontbytes.js';
 import { isDeflateSupported } from './zip.js';
 
 let cdSource: CDImageSource | undefined;
@@ -27,6 +26,23 @@ export interface RemoteLoadDetail {
 }
 
 let gameEncoding: RemoteLoadDetail['encoding'];
+const GBK_FONT_FILE = 'SourceHanSansCN-Normal.otf';
+
+async function prepareGbkFont(): Promise<boolean> {
+    try {
+        const url = new URL(`games/rance4/${GBK_FONT_FILE}`, document.baseURI);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        Module!.FS.writeFile(`/fonts/${GBK_FONT_FILE}`, new Uint8Array(await response.arrayBuffer()));
+        return true;
+    } catch (error) {
+        // The engine can still start with its bundled font; keep the game
+        // reachable rather than leaving its run dependency unresolved.
+        console.warn('Unable to load the GBK fallback font:', error);
+        addToast('中文字体加载失败，部分文字可能无法显示。', 'warning');
+        return false;
+    }
+}
 
 function init() {
     $('#fileselect').addEventListener('change', handleFileSelect, false);
@@ -192,7 +208,7 @@ function loaded(hasMidi: boolean) {
         Module!.arguments.push('-fm');
         if (gameEncoding) {
             Module!.arguments.push('-encoding', gameEncoding);
-            if (gameEncoding === 'gbk' && gbkFontReady()) {
+            if (gameEncoding === 'gbk' && await prepareGbkFont()) {
                 Module!.arguments.push('-ttfont_gothic', `/fonts/${GBK_FONT_FILE}`);
                 Module!.arguments.push('-ttfont_mincho', `/fonts/${GBK_FONT_FILE}`);
             }
