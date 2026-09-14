@@ -45,41 +45,6 @@ function remoteManifestUrls(manifest, gameRoot) {
   }
 }
 
-// Music is the one asset class that must not be downloaded up front: Rance 4
-// ships 40 tracks totalling 82 MB, far past what a mobile connection will
-// tolerate before the title screen.  Gather their URLs instead so the player
-// can fetch a track when the script actually asks for it.
-//
-// The playlist (_inmm.ini, or playlist.txt) maps track numbers to file names.
-// Fetching it costs a few kB and tells the player which file is track N.
-async function collectBgmTracks(entries) {
-  const audio = entries.filter((e) => /\.(mp3|ogg|wav)$/i.test(e.path));
-  const urls = new Map();
-  for (const e of audio)
-    urls.set(e.path.split('/').pop(), e.url);
-  if (urls.size === 0)
-    return undefined;
-
-  const playlistEntry = entries.find((e) => {
-    const name = e.path.split('/').pop().toLowerCase();
-    return name === '_inmm.ini' || name === 'playlist.txt';
-  });
-  let playlistName;
-  let playlistText;
-  if (playlistEntry) {
-    try {
-      const res = await fetch(playlistEntry.url);
-      if (res.ok) {
-        playlistText = await res.text();
-        playlistName = playlistEntry.path.split('/').pop();
-      }
-    } catch (e) {
-      console.warn('无法读取曲目列表，改用文件名编号：', e);
-    }
-  }
-  return {playlistName, playlistText, urls};
-}
-
 // Files the interpreters never read as game data.
 //   audio: isGameDataFile() skips mp3/ogg/wav (the runtime streams CD tracks
 //          from the disc image or reads BGM from an ALD)
@@ -162,10 +127,8 @@ async function startRanceKing() {
       status.textContent = `正在加载原始游戏文件：${i + 1} / ${downloadable.length}`;
       files.push(new File([await fetchGameFile(entry.url, entry.path)], entry.path.split('/').pop()));
     }
-    // Music kept out of the download above still has to reach the player.
-    const bgm = await collectBgmTracks(remote.files.map((e) => ({path: e.path, url: e.url})));
     document.dispatchEvent(new CustomEvent('load-remote-files', {
-      detail: {files, imageUrl: remote.imageUrl, cueUrl: remote.cueUrl, encoding: 'gbk', bgm},
+      detail: {files, imageUrl: remote.imageUrl, cueUrl: remote.cueUrl, encoding: 'gbk'},
     }));
   } catch (error) {
     status.textContent = `加载失败：${error instanceof Error ? error.message : error}`;
@@ -197,26 +160,22 @@ async function startSelectedGame() {
     if (!manifestResponse.ok) throw new Error('游戏资源尚未部署');
     const manifest = await manifestResponse.json();
     const files = [];
-    // These titles ship their music as bgm/*.mp3 plus a playlist rather than a
-    // disc image.  That audio must not be downloaded here, but the player needs
-    // its URLs, so send the same remote-load event the Kichikuou path uses.
-    const allEntries = manifest.files.map((f) => {
-      const entry = typeof f === 'string' ? {path: f, publicPath: f} : f;
-      const publicPath = entry.publicPath || entry.path;
-      const url = new URL(publicPath.split('/').map(encodeURIComponent).join('/'), gameRoot);
-      return {path: entry.path, url: url.href};
-    });
-    const wanted = allEntries.filter((entry) => !isUnusedStartFile(entry.path));
+    const wanted = manifest.files
+      .map((f) => typeof f === 'string' ? {path: f, publicPath: f} : f)
+      .filter((entry) => !isUnusedStartFile(entry.path));
     for (let i = 0; i < wanted.length; i++) {
       const entry = wanted[i];
+      const path = entry.path;
+      const publicPath = entry.publicPath || path;
       status.textContent = `正在加载原始游戏文件：${i + 1} / ${wanted.length}`;
-      files.push(new File([await fetchGameFile(entry.url, entry.path)], entry.path.split('/').pop()));
+      const url = new URL(publicPath.split('/').map(encodeURIComponent).join('/'), gameRoot);
+      files.push(new File([await fetchGameFile(url, path)], path.split('/').pop()));
     }
-    const bgm = await collectBgmTracks(allEntries);
-    document.dispatchEvent(new CustomEvent('load-remote-files', {
-      detail: {files, imageUrl: manifest.imageUrl || '', cueUrl: manifest.cueUrl || '',
-               encoding: 'gbk', bgm},
-    }));
+    const transfer = new DataTransfer();
+    files.forEach((file) => transfer.items.add(file));
+    const input = document.querySelector('#fileselect');
+    input.files = transfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
   } catch (error) {
     status.textContent = `加载失败：${error instanceof Error ? error.message : error}`;
     console.error(error);
