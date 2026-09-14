@@ -18,6 +18,8 @@ export interface RemoteLoadDetail {
     files: File[];
     imageUrl: string;
     cueUrl: string;
+    /** Music shipped as loose audio files rather than a disc image. */
+    bgm?: {playlistName?: string, playlistText?: string, urls: Map<string, string>};
     /** Explicitly selected by a trusted game manifest; never inferred from
      * arbitrary user input. */
     encoding?: 'sjis' | 'gbk' | 'utf8';
@@ -51,10 +53,13 @@ function init() {
 
 function handleRemoteLoad(evt: Event) {
     const detail = (evt as CustomEvent<RemoteLoadDetail>).detail;
-    if (installing || !detail || !Array.isArray(detail.files) || !detail.imageUrl || !detail.cueUrl)
+    // imageUrl/cueUrl may be empty for titles that ship loose audio files
+    // instead of a disc image; the BGM source covers their music.
+    if (installing || !detail || !Array.isArray(detail.files) ||
+        typeof detail.imageUrl !== 'string' || typeof detail.cueUrl !== 'string')
         return;
     gameEncoding = detail.encoding;
-    install(new RemoteCDDAFileSource(detail.files, detail.imageUrl, detail.cueUrl));
+    install(new RemoteCDDAFileSource(detail.files, detail.imageUrl, detail.cueUrl, detail.bgm));
 }
 
 function handleFileSelect(evt: Event) {

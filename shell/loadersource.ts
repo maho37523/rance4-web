@@ -2,7 +2,7 @@
 // This source code is governed by the MIT License, see the LICENSE file.
 import { $, basename, createBlob, DRIType } from './util.js';
 import * as cdimage from './cdimage.js';
-import {CDDALoader, BGMLoader} from './cddaloader.js';
+import {CDDALoader, BGMLoader, CDDALoaderSource} from './cddaloader.js';
 import {detectEngine, isGameDataFile, registerDataFile} from './datafile.js';
 import * as iso9660 from './iso9660.js';
 import {loadModule, saveDirReady} from './moduleloader.js';
@@ -330,23 +330,105 @@ export class FileSource extends LoaderSource {
 /** Game files that have already been downloaded, with CDDA hosted remotely. */
 export class RemoteCDDAFileSource extends LoaderSource {
     private cddaReader!: cdimage.Reader;
+    private bgmSource: RemoteTrackSource | undefined;
 
     constructor(private readonly files: File[], private readonly imageUrl: string,
-                private readonly cueUrl: string) {
+                private readonly cueUrl: string,
+                // Games whose music is a folder of audio files rather than a
+                // disc image: trackNo -> url, plus the playlist file that maps
+                // track numbers to those names.
+                bgm?: {playlistName?: string, playlistText?: string, urls: Map<string, string>}) {
         super();
+        if (bgm && bgm.urls.size > 0) {
+            this.bgmSource = new RemoteTrackSource(bgm.urls, bgm.playlistName, bgm.playlistText);
+        }
     }
 
     protected async doLoad() {
-        this.cddaReader = await cdimage.createRemoteReader(this.imageUrl, this.cueUrl);
+        // A BGM folder replaces the disc image as the audio source.
+        if (!this.bgmSource)
+            this.cddaReader = await cdimage.createRemoteReader(this.imageUrl, this.cueUrl);
         const entries: GameFileEntry[] = this.files.map((file) => ({
             name: file.name,
             load: async () => [new Uint8Array(await file.arrayBuffer())],
         }));
+        // The engine's MP3 backend opens the playlist from the filesystem, so
+        // it has to be registered as a game file even though audio is not.
+        if (this.bgmSource?.playlistFile)
+            entries.push(this.bgmSource.playlistFile);
         await this.installGameFiles(entries);
     }
 
     createCDDALoader(): CDDALoader {
+        if (this.bgmSource)
+            return new CDDALoader(this.bgmSource);
         return new CDDALoader(this.cddaReader);
+    }
+}
+
+/*
+ * Audio tracks fetched from URLs on demand.
+ *
+ * The Chinese Rance 4 ships its BGM as bgm/*.mp3 plus _inmm.ini instead of a
+ * disc image.  The emscripten CD-ROM backend never opens that playlist (its
+ * cdrom_init() is a stub), so on the web build those tracks were unreachable:
+ * a start transferred none of them and the game played sound effects only.
+ * This source hands each track to the existing <audio> player when the script
+ * asks for it, and fetches it only at that moment -- the 40 tracks total 82 MB,
+ * far too much to pull up front on mobile.
+ */
+class RemoteTrackSource implements CDDALoaderSource {
+    private readonly byTrack = new Map<number, string>();
+    private readonly playlistName: string | undefined;
+    private readonly rawPlaylist: string | undefined;
+
+    constructor(urls: Map<string, string>, playlistName?: string, playlist?: string) {
+        this.playlistName = playlistName;
+        this.rawPlaylist = playlist;
+        const norm = (s: string) => s.toLowerCase().trim().replace(/.*[\/\\]/, '');
+        const lookup = new Map<string, string>();
+        for (const [name, url] of urls)
+            lookup.set(norm(name), url);
+
+        if (playlist) {
+            // Same shape as CDDATracks.load_playlist: track numbers are 1-based
+            // and the first line is skipped.
+            const lines = playlist.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                const url = lookup.get(norm(lines[i]));
+                if (url)
+                    this.byTrack.set(i + 2, url);
+            }
+        }
+        if (this.byTrack.size === 0) {
+            for (const [name, url] of urls) {
+                const m = /(\d+)\.(mp3|ogg|wav)$/i.exec(name);
+                if (m)
+                    this.byTrack.set(Number(m[1]), url);
+            }
+        }
+    }
+
+    /** The playlist as a game file, so the engine can read it from the FS. */
+    get playlistFile(): GameFileEntry | undefined {
+        return this.rawPlaylist && this.playlistName
+            ? {name: this.playlistName,
+               load: async () => [new TextEncoder().encode(this.rawPlaylist!)]}
+            : undefined;
+    }
+
+    hasAudioTrack(): boolean {
+        return this.byTrack.size > 0;
+    }
+
+    async extractTrack(track: number): Promise<Blob> {
+        const url = this.byTrack.get(track);
+        if (!url)
+            throw new Error('No BGM track ' + track);
+        const res = await fetch(url);
+        if (!res.ok)
+            throw new Error(`BGM track ${track} failed (status ${res.status})`);
+        return await res.blob();
     }
 }
 
