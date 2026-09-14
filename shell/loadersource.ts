@@ -54,7 +54,7 @@ export function isUnusedAudioFile(name: string): boolean {
  * the progress callback lets the launcher show movement.
  */
 export async function fetchWithResume(url: string, onProgress?: (loaded: number, total: number) => void,
-                                      chunkSize = 4 << 20): Promise<ArrayBuffer> {
+                                      chunkSize = 1 << 20): Promise<ArrayBuffer> {
     let total = 0;
     let supportsRanges = false;
     try {
@@ -78,6 +78,8 @@ export async function fetchWithResume(url: string, onProgress?: (loaded: number,
                 const res = await fetch(url, { headers: { Range: `bytes=${offset}-${end}` } });
                 if (res.status !== 206)
                     throw new Error(`range request failed (status ${res.status})`);
+                if (res.headers.get('Content-Range') !== `bytes ${offset}-${end}/${total}`)
+                    throw new Error(`range response does not match requested bytes`);
                 const buf = new Uint8Array(await res.arrayBuffer());
                 if (buf.length !== end - offset + 1)
                     throw new Error(`short chunk: got ${buf.length}, want ${end - offset + 1}`);

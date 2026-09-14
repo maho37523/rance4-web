@@ -147,7 +147,10 @@ async function fetchGameFile(url, label, onProgress) {
     onProgress?.(blob.size, blob.size, false);
     return blob;
   }
-  const chunk = 4 << 20;
+  // A 4 MiB response still spends ~20 s on a 1.6 Mbps connection and can be
+  // cut short by mobile radios/proxies. One MiB keeps each retry short while
+  // retaining enough payload to avoid request-overhead dominated downloads.
+  const chunk = 1 << 20;
   const parts = [];
   for (let offset = 0; offset < total; offset += chunk) {
     const end = Math.min(offset + chunk, total) - 1;
@@ -156,6 +159,9 @@ async function fetchGameFile(url, label, onProgress) {
       try {
         const res = await fetch(url, {headers: {Range: `bytes=${offset}-${end}`}});
         if (res.status !== 206) throw new Error(`status ${res.status}`);
+        const expectedRange = `bytes ${offset}-${end}/${total}`;
+        if (res.headers.get('Content-Range') !== expectedRange)
+          throw new Error(`unexpected range ${res.headers.get('Content-Range')}`);
         const blob = await res.blob();
         if (blob.size !== end - offset + 1) throw new Error(`short chunk ${blob.size}`);
         parts.push(blob);
