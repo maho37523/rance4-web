@@ -113,11 +113,16 @@ async function proxyImg(request, fetchImpl) {
 
 async function proxyCue(request, fetchImpl) {
   const result = await fetchImpl(new Request(upstreamUrl("cue"), { method: request.method, redirect: "follow" }));
-  const length = result.headers.get("Content-Length");
-  if (result.status !== 200 || length !== String(RELEASE_FILES.cue.size) || Number(length) > CUE_LIMIT) return response(502, "Invalid release response", request);
+  // Cloudflare's upstream fetch is allowed to omit Content-Length even though
+  // GitHub's public download supplies it. The CUE is only 1 KB, so validate
+  // its actual bounded body instead of rejecting a healthy chunked response.
+  if (result.status !== 200) return response(502, "Invalid release response", request);
+  const body = request.method === "HEAD" ? null : await result.arrayBuffer();
+  if (body !== null && (body.byteLength !== RELEASE_FILES.cue.size || body.byteLength > CUE_LIMIT))
+    return response(502, "Invalid release response", request);
   const headers = [["Content-Type", result.headers.get("Content-Type") || "text/plain; charset=utf-8"]];
-  if (length !== null) headers.push(["Content-Length", length]);
-  return response(200, request.method === "HEAD" ? null : boundedBody(result.body, CUE_LIMIT), request, headers);
+  headers.push(["Content-Length", String(RELEASE_FILES.cue.size)]);
+  return response(200, body, request, headers);
 }
 
 async function proxyAld(request, kind, fetchImpl) {

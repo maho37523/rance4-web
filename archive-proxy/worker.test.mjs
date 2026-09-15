@@ -97,6 +97,15 @@ test('allows a bounded ALD range so mobile downloads can resume', async () => {
   assert.equal((await response.arrayBuffer()).byteLength, 1024);
 });
 
+test('accepts a valid CUE body when an upstream omits Content-Length', async () => {
+  const response = await handleRequest(new Request(`${site}/v1/ranceking/cd.cue`, {
+    headers: {Origin: origin},
+  }), () => new Response(new Uint8Array(1189), {status: 200}));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Content-Length'), '1189');
+  assert.equal((await response.arrayBuffer()).byteLength, 1189);
+});
+
 test('rejects oversized ALD ranges before upstream fetch', async () => {
   const response = await handleRequest(new Request(`${site}/v1/ranceking/SA.ALD`, {
     headers: {Range: 'bytes=0-4194304'},
