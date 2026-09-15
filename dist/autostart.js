@@ -457,7 +457,10 @@ async function startSelectedGame() {
     const bgm = await collectBgmTracks(allEntries);
     document.dispatchEvent(new CustomEvent('load-remote-files', {
       detail: {files, imageUrl: manifest.imageUrl || '', cueUrl: manifest.cueUrl || '',
-               encoding: 'gbk', bgm},
+               // Rance 4's Chinese scenario bytes are already UTF-8.  Converting
+               // the archive back to GBK would shift its in-page jump addresses.
+               // Keep the original bytes and select the engine's UTF-8 reader.
+               encoding: game === 'rance4' ? 'utf8' : 'gbk', bgm},
     }));
   } catch (error) {
     status.textContent = `加载失败：${error instanceof Error ? error.message : error}`;
