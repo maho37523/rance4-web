@@ -1,5 +1,6 @@
 import * as fsPromises from 'node:fs/promises';
 import * as process from 'node:process';
+import { createHash } from 'node:crypto';
 import * as esbuild from 'esbuild';
 
 const logLevel = 'info';
@@ -108,9 +109,23 @@ for (const config of configs) {
         else
             ctx.watch();
     } else {
-        esbuild.build(config);
+        await esbuild.build(config);
     }
 }
 
 await installExternalModules();
 await installFonts();
+
+async function updateModuleCacheVersions() {
+    const indexPath = 'dist/index.html';
+    let index = await fsPromises.readFile(indexPath, 'utf8');
+    for (const file of ['shell.js', 'autostart.js']) {
+        const contents = await fsPromises.readFile(`${outdir}/${file}`);
+        const version = createHash('sha256').update(contents).digest('hex').slice(0, 12);
+        const pattern = new RegExp(`(${file.replace('.', '\\.')})(?:\\?v=[^"]*)?`, 'g');
+        index = index.replace(pattern, `$1?v=${version}`);
+    }
+    await fsPromises.writeFile(indexPath, index);
+}
+
+await updateModuleCacheVersions();

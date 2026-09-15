@@ -1,4 +1,5 @@
-import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
 // Game data lives beside the application checkout (see PUBLIC_DEPLOYMENT.md).
@@ -24,6 +25,15 @@ async function listFiles(root, directory = '') {
   return files;
 }
 
+async function publicFileMetadata(root, publicPath) {
+  const filePath = join(root, publicPath);
+  const [info, contents] = await Promise.all([stat(filePath), readFile(filePath)]);
+  return {
+    size: info.size,
+    sha256: createHash('sha256').update(contents).digest('hex'),
+  };
+}
+
 async function copyGame(id, source) {
   const destination = join(outputRoot, id);
   const entries = await readdir(source, { withFileTypes: true });
@@ -32,6 +42,9 @@ async function copyGame(id, source) {
 
   const publicEntries = [];
   for (const entry of entries) {
+    // Diagnostic backups are intentionally retained beside local data, but they
+    // are not game assets and must never be published or preloaded.
+    if (entry.isFile() && entry.name.endsWith('.orig-backup')) continue;
     const sourcePath = join(source, entry.name);
     // GitHub Pages/Jekyll can omit dot-prefixed files from a published site.
     // Keep the original name in the manifest, but publish this launcher file
@@ -55,6 +68,8 @@ async function copyGame(id, source) {
   }
 
   publicEntries.sort((a, b) => a.path.localeCompare(b.path));
+  for (const entry of publicEntries)
+    Object.assign(entry, await publicFileMetadata(destination, entry.publicPath));
   await writeFile(join(destination, 'manifest.json'), JSON.stringify({ id, files: publicEntries }, null, 2) + '\n');
   console.log(`${id}: ${publicEntries.length} files`);
 }

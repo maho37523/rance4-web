@@ -4,266 +4,319 @@
     {
       "path": "_inmm.ini",
       "publicPath": "_inmm.ini",
+      "size": 504,
       "sha256": "98414bce0676387d22ec5944c1163a23c46521fe5c28ef6da5f516abb73a4474"
     },
     {
       "path": ".xsys35rc",
       "publicPath": "__xsys35rc",
+      "size": 84,
       "sha256": "d938fbb67eeb5118ab0c25be2a1b07b1840ffd6a1a97214c8ac06730d15a5f8b"
     },
     {
       "path": "bgm/02.mp3",
       "publicPath": "bgm/02.mp3",
+      "size": 2248704,
       "sha256": "2364b6d44cb84263192bde7a28a6b20810461b1b164d69183d17eaeac26e7dd4"
     },
     {
       "path": "bgm/03.mp3",
       "publicPath": "bgm/03.mp3",
+      "size": 2035712,
       "sha256": "d77d370198057e6ea834601ddfe5f98bf0afee69c42a1a7b4e5baf588af404de"
     },
     {
       "path": "bgm/04.mp3",
       "publicPath": "bgm/04.mp3",
+      "size": 2125824,
       "sha256": "d2cc9d5bfe3623fb047efd29fc988b9c392bb89d9ae777651e3af9b4f0b86bc0"
     },
     {
       "path": "bgm/05.mp3",
       "publicPath": "bgm/05.mp3",
+      "size": 1734656,
       "sha256": "abe14aefb8edcf1831d4369915494e9373380ae49f468dd057c9ff8ea60f4011"
     },
     {
       "path": "bgm/06.mp3",
       "publicPath": "bgm/06.mp3",
+      "size": 3622912,
       "sha256": "850cd0b71fffbb11513f6b26ef701bf9df1d7428f0daffc9493f9633df04bac5"
     },
     {
       "path": "bgm/07.mp3",
       "publicPath": "bgm/07.mp3",
+      "size": 1820672,
       "sha256": "3e395221f3fc0f7dae7f8ccd93bad839bd262c232c0901ccd6646044055c0ad1"
     },
     {
       "path": "bgm/08.mp3",
       "publicPath": "bgm/08.mp3",
+      "size": 3540992,
       "sha256": "6bcea0733cbf0e464e41ca66fb798e9b0c953357828ca1042723881efe96a029"
     },
     {
       "path": "bgm/09.mp3",
       "publicPath": "bgm/09.mp3",
+      "size": 1703936,
       "sha256": "e49ecfe9f4c98552396b301be0f37300dfc9cdd415760c4e74a9b61bebe25c1d"
     },
     {
       "path": "bgm/10.mp3",
       "publicPath": "bgm/10.mp3",
+      "size": 1949696,
       "sha256": "fe1848bd3fba483127118e60a9c23f6d9c542c718b618e62492ba5893b2d1207"
     },
     {
       "path": "bgm/11.mp3",
       "publicPath": "bgm/11.mp3",
+      "size": 1601536,
       "sha256": "eceee9b846e4bec7d36a6792bf928eed4a1fdc185cfd9c8899ec25d34897e10e"
     },
     {
       "path": "bgm/12.mp3",
       "publicPath": "bgm/12.mp3",
+      "size": 1943552,
       "sha256": "d6a7246ac7b56e35fda0530ad5a35d1798d7c4335e3352e6c245bbad7e4d33f0"
     },
     {
       "path": "bgm/13.mp3",
       "publicPath": "bgm/13.mp3",
+      "size": 858112,
       "sha256": "2320c4f34899c229ae0f93cde90f90e5f467c2ee043a9526470d3b154b79e1b7"
     },
     {
       "path": "bgm/14.mp3",
       "publicPath": "bgm/14.mp3",
+      "size": 1413120,
       "sha256": "11a4797ea91419d6343fa7f560df2614f27db818c17b50a28ab45ca2dfed7852"
     },
     {
       "path": "bgm/15.mp3",
       "publicPath": "bgm/15.mp3",
+      "size": 978944,
       "sha256": "aab582837ddcd9f417dac335f008067a922189c7b2644a2677ad81a9afe58372"
     },
     {
       "path": "bgm/16.mp3",
       "publicPath": "bgm/16.mp3",
+      "size": 1552384,
       "sha256": "bfc99003bb20d3014726533704e6765df35d3aa3fedeb9cdb97c784fbe93429c"
     },
     {
       "path": "bgm/17.mp3",
       "publicPath": "bgm/17.mp3",
+      "size": 1605632,
       "sha256": "0b293270e8b37decdeac9625ab0fc5e61fe9ec3783800c0ec0793b70351a8208"
     },
     {
       "path": "bgm/18.mp3",
       "publicPath": "bgm/18.mp3",
+      "size": 1570816,
       "sha256": "9057f915690f1b2c2d587ad9f03bde67fe33a20ad0b7d6e3fdd365d8ff35505e"
     },
     {
       "path": "bgm/19.mp3",
       "publicPath": "bgm/19.mp3",
+      "size": 1124352,
       "sha256": "90b1d3444ec53519f630070be8809e476eee49c5699c778e72f9548b216b3fab"
     },
     {
       "path": "bgm/20.mp3",
       "publicPath": "bgm/20.mp3",
+      "size": 2119680,
       "sha256": "ee23ca7053f81f688bb780f337d83c4846b04fc35720a9392106a7ad1b4a8757"
     },
     {
       "path": "bgm/21.mp3",
       "publicPath": "bgm/21.mp3",
+      "size": 1601536,
       "sha256": "064228af97db6858199da6db256a1e062457e05d1ba17664dc19b088e9573968"
     },
     {
       "path": "bgm/22.mp3",
       "publicPath": "bgm/22.mp3",
+      "size": 1976320,
       "sha256": "d5ebd1f4d2fbba02f978f15286b336293f333d03a9d42aafd8e48e767d3179fb"
     },
     {
       "path": "bgm/23.mp3",
       "publicPath": "bgm/23.mp3",
+      "size": 2609152,
       "sha256": "c4a67a9a8f916aaf28f0afc1036ca2f784bfb2e1feb719fefc1e9d99ed3c16f2"
     },
     {
       "path": "bgm/24.mp3",
       "publicPath": "bgm/24.mp3",
+      "size": 2271232,
       "sha256": "738592e45f1d026ff8f5e3f5da62e1fc30be99fc12296bcfbed50558466e65a2"
     },
     {
       "path": "bgm/25.mp3",
       "publicPath": "bgm/25.mp3",
+      "size": 2256896,
       "sha256": "79713e7b286c90000a373b9fc55705c337715c6651ab9f6735afab6277dacee1"
     },
     {
       "path": "bgm/26.mp3",
       "publicPath": "bgm/26.mp3",
+      "size": 1488896,
       "sha256": "78ef534f57d1194a6e536ca6e193e77ebd782fadd4e5caed7be4ec4418987176"
     },
     {
       "path": "bgm/27.mp3",
       "publicPath": "bgm/27.mp3",
+      "size": 1069056,
       "sha256": "6b65f045d122a2f472ad6d5682cfa131034367398f98ee16abaae2c521792100"
     },
     {
       "path": "bgm/28.mp3",
       "publicPath": "bgm/28.mp3",
+      "size": 3708928,
       "sha256": "fd832ac7f125f81b5c049d57fcbf8ca63447aac70618ece62cd9b9c3148aa593"
     },
     {
       "path": "bgm/29.mp3",
       "publicPath": "bgm/29.mp3",
+      "size": 2961408,
       "sha256": "7b28b6e13dc71ea4c877973c241f0df5a4144c39429fe75bf21b0ec0960d556b"
     },
     {
       "path": "bgm/30.mp3",
       "publicPath": "bgm/30.mp3",
+      "size": 3049472,
       "sha256": "a8213cf8b3fcd128a6f9f9bca778faa41ad6358528fbb66d596da6f974996078"
     },
     {
       "path": "bgm/31.mp3",
       "publicPath": "bgm/31.mp3",
+      "size": 2838528,
       "sha256": "1054a216eb70e582884ced7f77d350923b88f66c8c5836abed7df6df24c72c8b"
     },
     {
       "path": "bgm/32.mp3",
       "publicPath": "bgm/32.mp3",
+      "size": 2873344,
       "sha256": "50f2aac130978e5ef4c88624c43472b93b4c55645b63d705270d8cd4e790d61f"
     },
     {
       "path": "bgm/33.mp3",
       "publicPath": "bgm/33.mp3",
+      "size": 4636672,
       "sha256": "456457e7d8205db862b9208f1ab987c871d4d76c2b136a7eea2b4b4c6c83a3d5"
     },
     {
       "path": "bgm/34.mp3",
       "publicPath": "bgm/34.mp3",
+      "size": 2396160,
       "sha256": "9dfd154b3d74d6d7ed9350e9f9b5ff382b72cf5f40e9daf3e6d172cc9532f3a9"
     },
     {
       "path": "bgm/35.mp3",
       "publicPath": "bgm/35.mp3",
+      "size": 653312,
       "sha256": "faca3c817172fbe8d2b7c5d3ed80f7e3c07bdc4df3b2ee04f6671cb538461948"
     },
     {
       "path": "bgm/36.mp3",
       "publicPath": "bgm/36.mp3",
+      "size": 763904,
       "sha256": "ebb79e54227e32bd7a99a25415d8ae78314520d831fd75f60a3c0f3403985445"
     },
     {
       "path": "bgm/37.mp3",
       "publicPath": "bgm/37.mp3",
+      "size": 1136640,
       "sha256": "57163d28ba54f3b477a30b904a34cc77a376ee77c6d1e96612acea2642c9842a"
     },
     {
       "path": "bgm/38.mp3",
       "publicPath": "bgm/38.mp3",
+      "size": 3047424,
       "sha256": "d511c54da0837add32ffcfc558d474eeca3eb4e59bfb42361c5046b4d1fddb21"
     },
     {
       "path": "bgm/39.mp3",
       "publicPath": "bgm/39.mp3",
+      "size": 2879488,
       "sha256": "ab066072f2dd1421f1c018a75f4de4be740b7f583a208bb79e8ec5220d649902"
     },
     {
       "path": "bgm/40.mp3",
       "publicPath": "bgm/40.mp3",
+      "size": 2598912,
       "sha256": "79ed8b984ce5bbb5d058ccc13bca82ca300da12d38247c5fbc549ab39461b3e8"
     },
     {
       "path": "bgm/41.mp3",
       "publicPath": "bgm/41.mp3",
+      "size": 1372160,
       "sha256": "28df41712fdc3006da5cbed2d0856eec028d87c8fbe45085f098cdd5bc408d68"
     },
     {
       "path": "bgm/42.mp3",
       "publicPath": "bgm/42.mp3",
+      "size": 862208,
       "sha256": "40f6648c2f323e1c461039d8eedebcd824f434ffc9f4705ba5ca26edaf7b8366"
     },
     {
       "path": "bgm/43.mp3",
       "publicPath": "bgm/43.mp3",
+      "size": 1126400,
       "sha256": "b16f341d8773128061428e62eba1de4863a3dba876f837b1263805065469235f"
     },
     {
       "path": "RANCE4CN.EXE",
       "publicPath": "RANCE4CN.EXE",
+      "size": 13302004,
       "sha256": "462e2ad1e51fc8e77983ec7ec4f474e40114fca1883e326b49a6dcfb6527fd42"
     },
     {
       "path": "RANCE4GA.ALD",
       "publicPath": "RANCE4GA.ALD",
+      "size": 17081360,
       "sha256": "6355914713f5a4c0eef4956cfbbe0dfaba6ac2776496c305cc83d154ef2c7f52"
     },
     {
       "path": "RANCE4SA.ALD",
       "publicPath": "RANCE4SA.ALD",
+      "size": 982288,
       "sha256": "cc1db7de58220c6f33fd2958418a74aaa6ec8e7ba9ca747b406a23cee4d1a305"
     },
     {
       "path": "RANCE4WA.ALD",
       "publicPath": "RANCE4WA.ALD",
+      "size": 261136,
       "sha256": "3789860c1901dfda31019a3b6df34f462145f70a37ae9e9aa622b3f0b1876353"
     },
     {
       "path": "SourceHanSansCN-Normal.otf",
       "publicPath": "SourceHanSansCN-Normal.otf",
+      "size": 8326204,
       "sha256": "a961763dcf9872d6ffc7ce14d8169c652413cc7f9c54ef8e0db619fd8fe191d3"
     },
     {
       "path": "System39.ain",
       "publicPath": "System39.ain",
+      "size": 813183,
       "sha256": "8438b7f0b0d475f5b8ef6344f5d81c0f867a08a98482ab036ebc7ff22e46358e"
     },
     {
       "path": "汉化说明.txt",
       "publicPath": "汉化说明.txt",
+      "size": 6717,
       "sha256": "a50cbb8fd3c546f5e70d67c47c185911be8647128684cb753db1dd30e59d6cc2"
     },
     {
       "path": "配布フリー宣言（アリスソフト）.txt",
       "publicPath": "配布フリー宣言（アリスソフト）.txt",
+      "size": 558,
       "sha256": "8c45fce00224a552612fdbc767f024e79034711a19ab44e5ac2301c42d6005a0"
     },
     {
       "path": "附汉化组组长告知.txt",
       "publicPath": "附汉化组组长告知.txt",
+      "size": 192,
       "sha256": "8df0cd1630c626a44aa1b97a8df8b5f10213e66902cdc2337b77ec32fc45c7a5"
     }
   ]

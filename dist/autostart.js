@@ -37,7 +37,12 @@ function remoteManifestUrls(manifest, gameRoot) {
       const urlValue = typeof item.url === 'string' && item.url ? item.url : item.publicPath || item.path;
       if (typeof urlValue !== 'string' || !urlValue)
         throw new Error(`发布清单缺少 ${item.path} 的 URL`);
-      return {path: item.path, url: resolve(urlValue), version: typeof item.sha256 === 'string' ? item.sha256 : ''};
+      return {
+        path: item.path,
+        url: resolve(urlValue),
+        version: typeof item.sha256 === 'string' ? item.sha256 : '',
+        size: typeof item.size === 'number' && item.size > 0 ? item.size : 0,
+      };
     });
     return {files, imageUrl: resolve(manifest.imageUrl).href, cueUrl: resolve(manifest.cueUrl).href};
   } catch (error) {
@@ -155,7 +160,7 @@ async function cachedGameFile(entry, onProgress) {
     console.warn('游戏缓存不可用，改用网络加载：', e);
   }
 
-  const blob = await fetchGameFile(entry.url, entry.path, onProgress);
+  const blob = await fetchGameFile(entry.url, entry.path, onProgress, entry.size);
   if (cache) {
     try {
       await cache.put(gameCacheKey(entry), new Response(blob));
@@ -206,15 +211,17 @@ async function requestPersistentStorage() {
   }
 }
 
-async function fetchGameFile(url, label, onProgress) {
-  let total = 0;
-  try {
-    const head = await fetch(url, {headers: {'Range': 'bytes=0-0'}});
-    if (head.status === 206) {
-      const m = /^bytes \d+-\d+\/(\d+)$/.exec(head.headers.get('Content-Range') || '');
-      if (m) total = Number(m[1]);
-    }
-  } catch {}
+async function fetchGameFile(url, label, onProgress, declaredSize = 0) {
+  let total = declaredSize;
+  if (!total) {
+    try {
+      const head = await fetch(url, {headers: {'Range': 'bytes=0-0'}});
+      if (head.status === 206) {
+        const m = /^bytes \d+-\d+\/(\d+)$/.exec(head.headers.get('Content-Range') || '');
+        if (m) total = Number(m[1]);
+      }
+    } catch {}
+  }
 
   // Prefer one request for the whole archive.
   //
@@ -237,11 +244,13 @@ async function fetchWholeWithRetry(url, total, onProgress) {
   let lastError;
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
+      onProgress?.(0, total, false);
       const res = await fetch(url);
       if (!res.ok) throw new Error(`status ${res.status}`);
-      const blob = await res.blob();
-      if (total && blob.size !== total) throw new Error(`size ${blob.size} != ${total}`);
-      onProgress?.(blob.size, total, false);
+      const expected = total || Number(res.headers.get('Content-Length')) || 0;
+      const blob = await readResponseBlob(res, (received) =>
+        onProgress?.(received, expected, false));
+      if (expected && blob.size !== expected) throw new Error(`size ${blob.size} != ${expected}`);
       return blob;
     } catch (e) {
       lastError = e;
@@ -250,6 +259,34 @@ async function fetchWholeWithRetry(url, total, onProgress) {
     }
   }
   throw lastError;
+}
+
+// Report as data arrives instead of waiting for Response.blob(). Large archives
+// otherwise make the mobile loader appear stuck even while the network is busy.
+// Reporting is throttled to keep DOM work below the network read frequency.
+async function readResponseBlob(res, onProgress) {
+  if (!res.body || !res.body.getReader) {
+    const blob = await res.blob();
+    onProgress?.(blob.size, true);
+    return blob;
+  }
+  const reader = res.body.getReader();
+  const parts = [];
+  let received = 0;
+  let reportedAt = 0;
+  for (;;) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    parts.push(value);
+    received += value.byteLength;
+    const now = Date.now();
+    if (now - reportedAt >= 200) {
+      reportedAt = now;
+      onProgress?.(received, false);
+    }
+  }
+  onProgress?.(received, true);
+  return new Blob(parts);
 }
 
 // Fallback only: the proxy limits one range to 4 MiB, so stay under that and
@@ -275,7 +312,8 @@ async function fetchInChunks(url, label, total, onProgress) {
         const expected = `bytes ${offset}-${end}/${total}`;
         if (res.headers.get('Content-Range') !== expected)
           throw new Error(`unexpected range ${res.headers.get('Content-Range')}`);
-        const blob = await res.blob();
+        const blob = await readResponseBlob(res, (received) =>
+          onProgress?.(done + received, total, false));
         if (blob.size !== end - offset + 1) throw new Error(`short chunk ${blob.size}`);
         parts.push(blob);
         lastError = undefined;
@@ -296,23 +334,25 @@ async function fetchInChunks(url, label, total, onProgress) {
 async function downloadGameFiles(entries, status) {
   const files = new Array(entries.length);
   const loaded = new Array(entries.length).fill(0);
-  const totals = new Array(entries.length).fill(0);
+  const totals = entries.map((entry) => entry.size || 0);
   const cached = new Array(entries.length).fill(false);
   const renderProgress = () => {
     // Cache hits are not downloads, so they are excluded from the byte count --
     // otherwise a fully cached start would look like it was transferring
     // everything again.  The file count still includes them, because they are
     // ready to use.
-    let done = 0, known = 0, cacheCount = 0, toDownload = 0;
+    let done = 0, known = 0, cacheCount = 0;
     for (let i = 0; i < entries.length; i++) {
       if (cached[i]) { cacheCount++; continue; }
-      if (totals[i] > 0) { toDownload++; done += loaded[i]; known += totals[i]; }
+      const expected = entries[i].size || totals[i];
+      if (expected > 0) { done += loaded[i]; known += expected; }
     }
     const complete = files.filter(Boolean).length;
     const amount = known > 0 ? `，${(done / 1048576).toFixed(1)} / ${(known / 1048576).toFixed(1)} MB` : '';
     const reused = cacheCount > 0 ? `，已复用缓存 ${cacheCount} 个` : '';
     status.textContent = `正在加载原始游戏文件：${complete} / ${entries.length}${amount}${reused}`;
   };
+  renderProgress();
   let next = 0;
   const worker = async () => {
     while (next < entries.length) {
@@ -320,7 +360,7 @@ async function downloadGameFiles(entries, status) {
       const entry = entries[i];
       const blob = await cachedGameFile(entry, (current, total, fromCache) => {
         loaded[i] = current;
-        totals[i] = total;
+        totals[i] = entries[i].size || total;
         cached[i] = fromCache;
         renderProgress();
       });
@@ -343,6 +383,7 @@ async function startRanceKing() {
   document.querySelector('#loader .game-picker').hidden = true;
   const status = document.querySelector('#loader .local-status');
   status.hidden = false;
+  await requestPersistentStorage();
   try {
     const gameRoot = new URL(`games/${game}/`, document.baseURI);
     const response = await fetch(new URL('manifest.json', gameRoot));

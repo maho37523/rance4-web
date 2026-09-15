@@ -6,18 +6,22 @@
   "files": [
     {
       "path": "v1/ranceking/SA.ALD",
+      "size": 3912464,
       "sha256": "8a2e6446e478a1c379e0ffcccdf66ca77c8f1541f0e6b0eddb21a2a80a048262"
     },
     {
       "path": "v1/ranceking/GA.ALD",
+      "size": 29178384,
       "sha256": "ff50c5246b5f4b43bb8d7136c59953330ebc872dc1ee4b5b406f377d80ab35cb"
     },
     {
       "path": "v1/ranceking/GB.ALD",
+      "size": 19078928,
       "sha256": "fe72fe04e60c18b147b07b506d1fe6cd7a12ab5b1c64d57fff2ad1748eeeb640"
     },
     {
       "path": "v1/ranceking/WA.ALD",
+      "size": 2150928,
       "sha256": "159612c81aa858fcd54a20215e6771bc55901b7c298a4302b4fd65398b810ce1"
     }
   ],
