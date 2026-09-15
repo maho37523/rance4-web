@@ -45,10 +45,16 @@ export const toolsRegistry = Object.freeze({
     },
   },
   ranceking: {
-    guide: {status: '远端发布状态：启动时检查游戏资源清单'},
+    guide: {
+      status: '已接入：基础游玩说明、存档与变量工具使用说明',
+      action: {label: '查看攻略', kind: 'guide'},
+    },
     tools: {
       saveBackup: {status: '可在设置中使用'},
-      modifier: {status: '待接入'},
+      modifier: {
+        status: '已接入：运行期变量查看、搜索与修改；改前请导出存档',
+        action: {label: '打开修改器', kind: 'trainer'},
+      },
     },
   },
 });

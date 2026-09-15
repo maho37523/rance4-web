@@ -7,11 +7,11 @@
 import {$, urlParams} from './util.js';
 import {guides, Guide, GuideSection} from './guides/index.js';
 
-export type GuideGame = 'rance4' | 'rance41' | 'rance42';
+export type GuideGame = 'rance4' | 'rance41' | 'rance42' | 'ranceking';
 
 function currentGame(): GuideGame | null {
     const game = urlParams.get('game');
-    return game === 'rance4' || game === 'rance41' || game === 'rance42' ? game : null;
+    return game === 'rance4' || game === 'rance41' || game === 'rance42' || game === 'ranceking' ? game : null;
 }
 
 function currentPage(): number | null {

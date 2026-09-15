@@ -48,7 +48,11 @@ function sendKey(type: 'keydown' | 'keyup', gameKey: GameKey) {
     // them also works around mobile WebKit's read-only constructor options.
     Object.defineProperty(event, 'keyCode', {value: gameKey.keyCode});
     Object.defineProperty(event, 'which', {value: gameKey.keyCode});
-    document.dispatchEvent(event);
+    // Dispatch from the actual SDL canvas. This reaches the canvas listener
+    // used by mobile Emscripten builds and bubbles to document for desktop.
+    const target = canvas();
+    target.focus?.();
+    target.dispatchEvent(event);
 }
 
 function releasePointer(pointerId: number) {

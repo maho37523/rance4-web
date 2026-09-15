@@ -14,9 +14,9 @@ import {SaveDataManager} from './savedata.js';
 import {getPresets} from './cheat-presets.js';
 import type {Preset} from './cheat-presets.js';
 
-export type SupportedGame = 'rance4' | 'rance41' | 'rance42';
+export type SupportedGame = 'rance4' | 'rance41' | 'rance42' | 'ranceking';
 
-const supportedGames: SupportedGame[] = ['rance4', 'rance41', 'rance42'];
+const supportedGames: SupportedGame[] = ['rance4', 'rance41', 'rance42', 'ranceking'];
 
 // The trainer is opt-in per game: the launcher must have asked for one of the
 // three titles above.

@@ -53,11 +53,23 @@ class RemoteRangeImage implements RangeImage {
         if (start === end)
             return new Blob();
 
-        const response = await fetch(this.url, {
-            headers: { Range: `bytes=${start}-${end - 1}` },
-        });
-        if (response.status !== 206)
-            throw new Error(`Remote image range request failed (status ${response.status})`);
+        // Mobile proxies occasionally reset a multi-megabyte CDDA range.
+        // Retrying the exact range is safe and avoids making a whole music
+        // track permanently silent after one transient failure.
+        let response: Response | undefined;
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 4; attempt++) {
+            try {
+                response = await fetch(this.url, {headers: {Range: `bytes=${start}-${end - 1}`}});
+                if (response.status === 206) break;
+                lastError = new Error(`Remote image range request failed (status ${response.status})`);
+            } catch (error) {
+                lastError = error;
+            }
+            await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)));
+        }
+        if (!response || response.status !== 206)
+            throw lastError instanceof Error ? lastError : new Error('Remote image range request failed');
         const contentRange = parseContentRange(response.headers.get('Content-Range'));
         if (!contentRange || contentRange.start !== start || contentRange.end !== end - 1 || contentRange.size !== this.size)
             throw new Error('Remote image returned an invalid Content-Range');

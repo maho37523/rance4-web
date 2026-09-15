@@ -3,6 +3,7 @@
 import {$, Deferred, gaException, isMobileSafari} from './util.js';
 import {BGMLoader, CDDALoader} from './cddaloader.js';
 import * as volumeControl from './volume.js';
+import {addToast} from './widgets.js';
 
 const audio = <HTMLAudioElement>$('audio');
 let cddaLoader: CDDALoader | undefined;
@@ -85,7 +86,11 @@ export function play(track: number, loop: number) {
     audio.currentTime = 0;
     cddaLoader!.getCDDA(track, audio).then(
         (url) => startPlayback(url, loop),
-        (err) => gtag('event', 'InvalidTrack', { event_category: 'CDDA' }));
+        (err) => {
+            console.warn(`CDDA track ${track} failed`, err);
+            gtag('event', 'InvalidTrack', { event_category: 'CDDA' });
+            addToast(`背景音乐 ${track} 加载失败；请检查网络后再次触发该场景。`, 'warning');
+        });
 }
 
 export async function stop(fadeout_ms?: number) {
