@@ -13,6 +13,7 @@ import {addToast, openFileInput} from './widgets.js';
 import {SaveDataManager} from './savedata.js';
 import {getPresets} from './cheat-presets.js';
 import type {Preset} from './cheat-presets.js';
+import {noteUi} from './diagnostics.js';
 
 export type SupportedGame = 'rance4' | 'rance41' | 'rance42' | 'ranceking';
 
@@ -818,6 +819,9 @@ export function openTrainer() {
         return;
     if (!panel)
         panel = new TrainerPanel(game);
+    // A variable write followed by a hang is the kind of thing this recorder
+    // exists to make visible, so opening the trainer belongs on the timeline.
+    noteUi(`修改器面板打开 (${game})`);
     panel.open();
 }
 

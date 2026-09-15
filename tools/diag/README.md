@@ -74,6 +74,33 @@ drive Brave over CDP.
 | `prepare-testdata.mjs` | Creates/removes `dist/games/ranceking-test/` and the `?game=rkt` launcher route so the harness can load local data. |
 | `probe_click.mjs`, `probe_mouse.mjs` | Isolated checks: does a CDP click reach the canvas, and does the engine see it. |
 | `verify-cheats.mjs` | Serves `dist/` only (no beacon collector) and verifies the trainer bridge against a running game. |
+| `hangwatch.mjs` | Runs a game and reports a **main-thread lockup** as distinct from a slow download, using a Worker watchdog; writes a screenshot and the shell's diagnostic report at the moment it dies. |
+| `shots.mjs` | Screenshots one URL and dumps the shell's own diagnostic report; `--touch` + `--click t:x,y` verify the phone layout. |
+| `pngcrop.mjs` | Decodes a PNG by hand to crop/magnify a region or diff two shots — Node here has only `zlib`. |
+| `font_coverage.py` | Parses a font's `cmap` directly and reports which characters it can draw, optionally against a data file's real text. |
+
+### Reading the shell's own recorder
+
+The shell carries a flight recorder (`shell/diagnostics.ts`) because the machine
+that reproduces a phone-only bug is not the machine that can attach a debugger:
+
+- toolbar 診断日志 button, a small always-visible `诊` handle, or
+  `window.ranceDiag.report()` on the desktop;
+- `?diag=1` prints page/address, audio state and the last network failure on
+  screen, so one photo of the phone is enough;
+- `?cjkfont=0` forces the engine's bundled font instead of the Chinese one, for
+  same-scene A/B comparisons.
+
+It records the engine's `Module.arguments`, whether the CJK font loaded (and how
+long it took), every CD/BGM request and audio event, scenario page changes, all
+`console` output, and stalls detected from a Worker.
+
+### Local server
+
+`server.mjs` implements `Range` (206 + `Content-Range`) because the runtime's
+remote CD reader refuses to start without it. Without that, the Kichikuou CD
+audio path — the suspected cause of the reported lockup — cannot be exercised
+locally at all.
 
 `verify-cheats.mjs` is the regression for the walkthrough/trainer work:
 

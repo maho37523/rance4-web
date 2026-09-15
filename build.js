@@ -119,7 +119,10 @@ await installFonts();
 async function updateModuleCacheVersions() {
     const indexPath = 'dist/index.html';
     let index = await fsPromises.readFile(indexPath, 'utf8');
-    for (const file of ['shell.js', 'autostart.js']) {
+    // style.css is included because a layout fix that a returning visitor never
+    // receives is not a fix: the hand-maintained `?v=mobile-controls-N` suffix
+    // was left behind on the last CSS change.
+    for (const file of ['shell.js', 'autostart.js', 'style.css']) {
         const contents = await fsPromises.readFile(`${outdir}/${file}`);
         const version = createHash('sha256').update(contents).digest('hex').slice(0, 12);
         const pattern = new RegExp(`(${file.replace('.', '\\.')})(?:\\?v=[^"]*)?`, 'g');

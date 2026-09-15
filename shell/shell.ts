@@ -19,6 +19,11 @@ import { hasPattonSave } from './savedata.js';
 import './touchcontrols.js';
 import { initTrainer } from './trainer.js';
 import { initGuide } from './guide.js';
+import { installDiagnostics } from './diagnostics.js';
+
+// The launcher is a separate bundle and needs to start the recorder before its
+// first await, so the entry point has to be re-exported from this one.
+export { installDiagnostics, diag } from './diagnostics.js';
 
 class System35Shell {
     constructor() {
@@ -153,6 +158,9 @@ let shell = new System35Shell();
 // lists; every other launch keeps the previous shell untouched.
 initGuide();
 initTrainer();
+// The diagnostic recorder is installed for every game, including ones this
+// launcher does not list: it is the only evidence channel a phone has.
+installDiagnostics();
 
 let xsystem35 = { shell, cdPlayer, midiPlayer, audio, texthook, load_mincho_font };
 (window as any).xsystem35 = xsystem35;

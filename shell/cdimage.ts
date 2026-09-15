@@ -1,5 +1,6 @@
 // Copyright (c) 2017 Kichikuou <KichikuouChrome@gmail.com>
 // This source code is governed by the MIT License, see the LICENSE file.
+import {diag} from './diagnostics.js';
 
 export interface Reader {
     readSector(sector: number): Promise<ArrayBuffer>;
@@ -55,6 +56,10 @@ class RemoteRangeImage implements RangeImage {
             throw new Error('Remote image has no usable Content-Range');
         if (size < 0 || !Number.isSafeInteger(size))
             throw new Error('Remote image has an invalid size');
+        // The image size decides how many range requests a track costs, and a
+        // size mismatch between the local disc and the published proxy image is
+        // itself a lead: track offsets would point at the wrong bytes.
+        diag.record('audio', `远端 CD 镜像可用 size=${size} (${(size / 1048576).toFixed(1)} MB)`, {url: String(url).split('/').slice(-1)[0]});
         return new RemoteRangeImage(url, size);
     }
 
@@ -63,6 +68,7 @@ class RemoteRangeImage implements RangeImage {
             throw new Error(`Invalid image range ${start}-${end}`);
         if (start === end)
             return new Blob();
+        const started = performance.now();
 
         // Mobile proxies occasionally reset a multi-megabyte CDDA range.
         // Retrying the exact range is safe and avoids making a whole music
@@ -87,6 +93,12 @@ class RemoteRangeImage implements RangeImage {
         const blob = await response.blob();
         if (blob.size !== end - start)
             throw new Error(`Remote image returned ${blob.size} bytes, expected ${end - start}`);
+        // Track extraction reads tens of megabytes in 1 MiB pieces; on a phone
+        // this is minutes of range traffic, and it is the main alternative
+        // explanation for "the game froze at a battle".
+        const ms = Math.round(performance.now() - started);
+        if (end - start >= (1 << 20) || ms > 1500)
+            diag.record('audio', `CD 读取 ${((end - start) / 1048576).toFixed(2)} MB 用时 ${ms} ms`, {start, end});
         return blob;
     }
 
@@ -128,12 +140,18 @@ export async function createReader(img: File, metadata?: File): Promise<Reader> 
 
 /** Create a reader backed by a remote CD image and a remotely hosted CUE file. */
 export async function createRemoteReader(imageUrl: string, cueUrl: string): Promise<Reader> {
+    const started = performance.now();
     const image = await RemoteRangeImage.open(imageUrl);
     const response = await fetch(cueUrl);
     if (!response.ok)
         throw new Error(`Unable to load remote CUE file (status ${response.status})`);
     const reader = new ImgCueReader(image);
     await reader.parseCueText(await response.text(), cueUrl);
+    diag.record('audio', `CD 镜像与 CUE 解析完成`, {
+        ms: Math.round(performance.now() - started),
+        tracks: reader.maxTrack(),
+        hasAudio: reader.hasAudioTrack(),
+    });
     return reader;
 }
 
@@ -329,8 +347,17 @@ class ImgCueReader implements Reader {
             throw new Error('Invalid track ' + trk);
 
         const size = track.numSectors * track.blockSize;
+        const started = performance.now();
+        diag.record('audio', `开始提取音轨 track=${trk} 约 ${(size / 1048576).toFixed(1)} MB`, {
+            offset: track.offset, sectors: track.numSectors, blockSize: track.blockSize,
+        });
         const blob = await this.img.readBlob(track.offset, track.offset + size);
-        return createWaveFile(44100, 2, size, [blob]);
+        const wave = createWaveFile(44100, 2, size, [blob]);
+        diag.record('audio', `音轨提取完成 track=${trk}`, {
+            ms: Math.round(performance.now() - started),
+            wavMB: (wave.size / 1048576).toFixed(1),
+        });
+        return wave;
     }
 
     private indexToSector(index: string): number {

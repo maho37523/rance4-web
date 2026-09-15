@@ -4,6 +4,7 @@ import {$, Deferred, gaException, isMobileSafari} from './util.js';
 import {BGMLoader, CDDALoader} from './cddaloader.js';
 import * as volumeControl from './volume.js';
 import {addToast} from './widgets.js';
+import {noteAudio} from './diagnostics.js';
 
 const audio = <HTMLAudioElement>$('audio');
 let cddaLoader: CDDALoader | undefined;
@@ -84,13 +85,39 @@ export function play(track: number, loop: number) {
         return;
     }
     audio.currentTime = 0;
+    // The script asked for a track: this is the moment a battle event switches
+    // BGM, and the moment the lockup was reported at.  Record the request and
+    // how long it took, separately from playback.
+    noteAudio(`CDDA 请求 track=${track} loop=${loop}`, {position: positionLabel()});
+    const started = performance.now();
     cddaLoader!.getCDDA(track, audio).then(
-        (url) => startPlayback(url, loop),
+        (url) => {
+            noteAudio(`CDDA 就绪 track=${track}`, {
+                ms: Math.round(performance.now() - started),
+                objectUrl: url.startsWith('blob:'),
+            });
+            startPlayback(url, loop);
+        },
         (err) => {
             console.warn(`CDDA track ${track} failed`, err);
             gtag('event', 'InvalidTrack', { event_category: 'CDDA' });
+            noteAudio(`CDDA 失败 track=${track}`, {
+                ms: Math.round(performance.now() - started),
+                error: err instanceof Error ? err.message : String(err),
+            });
             addToast(`背景音乐 ${track} 加载失败；请检查网络后再次触发该场景。`, 'warning');
         });
+}
+
+function positionLabel(): string {
+    const m = window.Module as any;
+    if (!m || typeof m._cheat_page !== 'function')
+        return '未启动';
+    try {
+        return `page=${m._cheat_page()} addr=0x${(m._cheat_addr() >>> 0).toString(16)}`;
+    } catch {
+        return '未知';
+    }
 }
 
 export async function stop(fadeout_ms?: number) {

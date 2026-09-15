@@ -234,11 +234,15 @@ dialog::backdrop {
     body.touch-controls-enabled .touch-control-button {
         min-width: 2.5rem;
         min-height: 2.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.55);
         border-radius: 0.55rem;
-        background: rgba(28, 34, 46, 0.82);
+        /* Translucent on purpose: these now float over the picture instead of
+         * taking width away from it.  Soft enough not to hide the scene, solid
+         * enough to stay legible over a bright one. */
+        background: rgba(28, 34, 46, 0.45);
         color: #fff;
         font: 700 1rem/1 system-ui, sans-serif;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
         box-shadow: 0 0.12rem 0.35rem rgba(0, 0, 0, 0.36);
         touch-action: none;
     }
@@ -267,17 +271,19 @@ dialog::backdrop {
         pointer-events: none;
     }
 
-    body.touch-controls-enabled #xsystem35.fit.pillarbox canvas.emscripten {
-        max-width: calc(100vw - 18rem);
-    }
-
-    /* Reserve a stable middle stage for the game. The canvas itself keeps
-     * its intrinsic pixel ratio and is contained inside this stage. */
+    /* The game gets the whole screen and the controls float on top of it.
+     *
+     * This used to carve 18rem out of the width for a side-by-side control
+     * area, which on a 812px-wide phone left the canvas about a third of the
+     * screen and shrank the text with it.  An overlay costs nothing in size:
+     * the controls are translucent and sit over the edge of the picture.
+     * Zoom is applied as whole multiples in shell/zoom.ts, so the canvas never
+     * lands on a fractional pixel boundary (which is what made text drift). */
     body.touch-controls-enabled #xsystem35.fit {
-        width: calc(100vw - 18rem);
+        width: 100vw;
         height: 100%;
-        flex: 0 1 calc(100vw - 18rem);
-        margin: 0 auto;
+        flex: 1 1 100vw;
+        margin: 0;
     }
 
     body.touch-controls-enabled #xsystem35.fit canvas.emscripten {
@@ -286,6 +292,26 @@ dialog::backdrop {
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
+    }
+
+    /* Keep the menu reachable: it used to be display:none here, which is why
+     * the in-game 攻略/修改器 buttons did not exist as far as a phone player
+     * was concerned. */
+    body.touch-controls-enabled #toolbar {
+        display: initial;
+        position: relative;
+        z-index: 70;
+    }
+
+    /* An open dialog must win over the touch overlay.
+     *
+     * #touch-controls is fixed at z-index 50 and covers the screen, and the
+     * touch buttons carry their own z-index; a modal dialog lives in the top
+     * layer for hit-testing, but its *painted* box was still being covered, so
+     * the walkthrough appeared behind the game controls.  Lift open dialogs
+     * above the overlay. */
+    body.touch-controls-enabled dialog[open] {
+        z-index: 300;
     }
 }
 
@@ -482,6 +508,30 @@ dialog::backdrop {
     max-width: 94vw;
 }
 
+/* Keep the panel inside the viewport at any size.
+ *
+ * Reported as "打开攻略无法滑动": the panel was taller than the screen (its
+ * body alone was capped at 68vh, plus header, toolbar and footer), so the
+ * footer and the bottom of the article sat outside the window with nothing to
+ * scroll.  Bounding the panel and letting the body scroll fixes it at every
+ * size instead of only on the desktop where it happened to fit. */
+.modal-container {
+    max-height: 94vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-container .modal-body {
+    min-height: 0;
+    overflow: auto;
+    flex: 1 1 auto;
+}
+
+#guide .modal-body {
+    max-height: none;
+}
+
 .guide-toolbar {
     display: flex;
     align-items: center;
@@ -596,5 +646,88 @@ dialog::backdrop {
         border-bottom: 1px solid #e6e9ef;
         padding-bottom: .5rem;
     }
+}
+
+/* ------------------------------------------------------------------ */
+/* Diagnostics (诊断日志)                                              */
+/* ------------------------------------------------------------------ */
+
+#diagnostics {
+    width: min(900px, 94vw);
+    max-width: 94vw;
+}
+
+.diagnostics-hint {
+    margin: 0 0 .5rem;
+    color: #475467;
+    font-size: .85rem;
+}
+
+.diagnostics-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .5rem;
+}
+
+.diagnostics-status {
+    color: #027a48;
+    font-size: .85rem;
+}
+
+.diagnostics-text {
+    width: 100%;
+    height: 55vh;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .75rem;
+    line-height: 1.35;
+    white-space: pre;
+    overflow: auto;
+    resize: vertical;
+}
+
+/* The toolbar is hidden on some viewports, so the export needs its own
+ * always-reachable handle.  Top-left, because the bottom corners belong to the
+ * touch controls -- A sits bottom-right and the export must not cover it. */
+#diagnostics-handle {
+    position: fixed;
+    left: max(.35rem, env(safe-area-inset-left));
+    top: max(.35rem, env(safe-area-inset-top));
+    z-index: 210;
+    width: 1.9rem;
+    height: 1.9rem;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    background: rgba(28, 34, 46, 0.5);
+    color: #fff;
+    font: 700 .8rem/1 system-ui, sans-serif;
+    opacity: .75;
+    touch-action: manipulation;
+}
+
+#diagnostics-handle:active {
+    opacity: 1;
+}
+
+#diagnostics-overlay {
+    position: fixed;
+    left: max(.35rem, env(safe-area-inset-left));
+    top: max(.35rem, env(safe-area-inset-top));
+    z-index: 205;
+    padding: .25rem .4rem;
+    border-radius: .25rem;
+    background: rgba(0, 0, 0, 0.65);
+    color: #9ff0a8;
+    font: 500 .7rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    pointer-events: none;
+    max-width: 60vw;
+}
+
+#diagnostics-overlay .diagnostics-overlay-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 

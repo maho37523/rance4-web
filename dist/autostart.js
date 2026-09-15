@@ -1,4 +1,9 @@
 import {renderToolsPanel} from './tools-registry.js';
+import {installDiagnostics} from './shell.js';
+
+// The recorder goes in before any await, so a failure inside the first
+// manifest fetch is still on the timeline.
+installDiagnostics();
 
 const games = {
   rance4: {name: '兰斯 4：教团的遗产', resourceStrategy: 'published'},
@@ -471,3 +476,4 @@ async function startSelectedGame() {
 }
 
 startSelectedGame();
+

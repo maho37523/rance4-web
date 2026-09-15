@@ -6,6 +6,7 @@
 // marks where the player is, which is the cheap half of "progress-aware".
 import {$, urlParams} from './util.js';
 import {guides, Guide, GuideSection} from './guides/index.js';
+import {noteUi} from './diagnostics.js';
 
 export type GuideGame = 'rance4' | 'rance41' | 'rance42' | 'ranceking';
 
@@ -311,6 +312,8 @@ let panel: GuidePanel | null = null;
 export function openGuide(game?: GuideGame | null) {
     if (!panel)
         panel = new GuidePanel();
+    // On the timeline so a hang right after opening the walkthrough is legible.
+    noteUi(`攻略面板打开${game ? ` (${game})` : ''}`);
     panel.open(game);
 }
 

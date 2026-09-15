@@ -36,14 +36,53 @@ async function listFiles(root, directory = '') {
   return result;
 }
 
-function respondFile(response, path) {
+/**
+ * Serve a file, honouring a single `bytes=` range.
+ *
+ * The published site gets its disc image through a Worker that implements
+ * Range, and the runtime's remote CD reader *requires* a 206 with a matching
+ * Content-Range before it will start.  Without that here, the whole CD audio
+ * path -- the suspected cause of the Kichikuou lockup -- could not be exercised
+ * locally at all, so a local run would silently prove nothing.
+ */
+function respondFile(response, path, rangeHeader) {
   fs.stat(path).then((stat) => {
     if (!stat.isFile()) throw new Error('not a file');
-    response.writeHead(200, {
-      'Content-Length': stat.size,
-      'Content-Type': mimeTypes[extname(path).toLowerCase()] ?? 'application/octet-stream',
+    const type = mimeTypes[extname(path).toLowerCase()] ?? 'application/octet-stream';
+    const headers = {
+      'Content-Type': type,
       'Cache-Control': 'no-store',
-    });
+      'Accept-Ranges': 'bytes',
+    };
+
+    const match = /^bytes=(\d*)-(\d*)$/.exec((rangeHeader ?? '').trim());
+    if (match && (match[1] || match[2])) {
+      const size = stat.size;
+      let start;
+      let end;
+      if (match[1] === '') {
+        // Suffix range: the last N bytes.
+        const length = Number(match[2]);
+        start = Math.max(0, size - length);
+        end = size - 1;
+      } else {
+        start = Number(match[1]);
+        end = match[2] === '' ? size - 1 : Math.min(Number(match[2]), size - 1);
+      }
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= size) {
+        response.writeHead(416, {'Content-Range': `bytes */${size}`}).end();
+        return;
+      }
+      response.writeHead(206, {
+        ...headers,
+        'Content-Range': `bytes ${start}-${end}/${size}`,
+        'Content-Length': end - start + 1,
+      });
+      createReadStream(path, {start, end}).pipe(response);
+      return;
+    }
+
+    response.writeHead(200, {...headers, 'Content-Length': stat.size});
     createReadStream(path).pipe(response);
   }).catch(() => {
     response.writeHead(404).end('Not found');
@@ -63,7 +102,7 @@ createServer(async (request, response) => {
       response.end(JSON.stringify({ files: files.filter((path) => !path.includes('/') || path.toLowerCase().startsWith('bgm/')) }));
     } else {
       const path = safePath(root, decodeURIComponent(gameMatch[2]));
-      if (path) respondFile(response, path); else response.writeHead(400).end('Invalid path');
+      if (path) respondFile(response, path, request.headers.range); else response.writeHead(400).end('Invalid path');
     }
     return;
   }
@@ -71,5 +110,5 @@ createServer(async (request, response) => {
   // the local static server behaves like a production static host.
   const staticPath = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1));
   const path = safePath(siteRoot, normalize(staticPath));
-  if (path) respondFile(response, path); else response.writeHead(400).end('Invalid path');
+  if (path) respondFile(response, path, request.headers.range); else response.writeHead(400).end('Invalid path');
 }).listen(4173, '127.0.0.1', () => console.log('Rance Web: http://127.0.0.1:4173'));

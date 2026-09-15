@@ -41,6 +41,9 @@ header {
             position: absolute;
             right: 0px;
             top: 0px;
+            /* Above the touch overlay: on a phone this 40x10 strip is the only
+             * way back to the menu, and the overlay shield covers the screen. */
+            z-index: 70;
             width: 40px;
             height: 10px;
             background-color: rgba(69,77,93,0.7);

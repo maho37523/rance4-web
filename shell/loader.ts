@@ -9,6 +9,7 @@ import * as midiPlayer from './midi.js';
 import * as volumeControl from './volume.js';
 import {message} from './strings.js';
 import { isDeflateSupported } from './zip.js';
+import { diag, setFontStatus } from './diagnostics.js';
 
 let cdSource: CDImageSource | undefined;
 let installing = false;
@@ -28,9 +29,26 @@ export interface RemoteLoadDetail {
 let gameEncoding: RemoteLoadDetail['encoding'];
 const GBK_FONT_FILE = 'SourceHanSansCN-Normal.otf';
 
-async function prepareGbkFont(): Promise<boolean> {
+// Chinese text needs a font that has the glyphs.
+//
+// The engine's bundled MTLc3m.ttf is a Japanese face: measured against Rance 4's
+// own scenario it covers only 708 of the 929 distinct Chinese characters the
+// script uses (76%), so a quarter of every line had no glyph at all.  The
+// Chinese release ships SourceHanSansCN-Normal.otf beside its data and that font
+// covers 929/929.  See tools/diag/font_coverage.py for the measurement.
+//
+// Loading it used to happen only for `-encoding gbk` (Kichikuou).  Rance 4 runs
+// with `-encoding utf8`, so it rendered Chinese with the Japanese font -- which
+// is what "文字几乎不可见" was.  Load it for every encoding that needs CJK glyphs.
+const CJK_ENCODINGS = new Set(['gbk', 'utf8']);
+// The font is published beside Rance 4's data, which is where the manifest
+// serves it from regardless of which game is asking for it.
+const CJK_FONT_OWNER = 'rance4';
+
+async function prepareCjkFont(): Promise<boolean> {
+    const started = performance.now();
     try {
-        const url = new URL(`games/rance4/${GBK_FONT_FILE}`, document.baseURI);
+        const url = new URL(`games/${CJK_FONT_OWNER}/${GBK_FONT_FILE}`, document.baseURI);
         // Prefer the launcher's cached fetch: the font is the largest single
         // asset outside the manifest, and re-downloading it every visit defeats
         // the download-once cache.
@@ -45,11 +63,13 @@ async function prepareGbkFont(): Promise<boolean> {
             bytes = new Uint8Array(await response.arrayBuffer());
         }
         Module!.FS.writeFile(`/fonts/${GBK_FONT_FILE}`, bytes);
+        setFontStatus('ok', {file: GBK_FONT_FILE, ms: Math.round(performance.now() - started), bytes: bytes.byteLength});
         return true;
     } catch (error) {
         // The engine can still start with its bundled font; keep the game
         // reachable rather than leaving its run dependency unresolved.
-        console.warn('Unable to load the GBK fallback font:', error);
+        console.warn('Unable to load the CJK fallback font:', error);
+        setFontStatus('failed', {error: error instanceof Error ? error.message : String(error), ms: Math.round(performance.now() - started)});
         addToast('中文字体加载失败，部分文字可能无法显示。', 'warning');
         return false;
     }
@@ -215,15 +235,28 @@ function loaded(hasMidi: boolean) {
     $('#toolbar').classList.remove('before-game-start');
     window.onbeforeunload = onBeforeUnload;
     setTimeout(async () => {
+        // `?cjkfont=0` renders with the engine's bundled font so the two can be
+        // compared side by side on one machine.  The default is the correct one.
+        const override = (window as any).__ranceCjkFontOverride as boolean | undefined;
+        const wantCjkFont = override !== undefined ? override : CJK_ENCODINGS.has(gameEncoding ?? '');
         Module!.arguments.push(config.antialias ? '-antialias' : '-noantialias');
         Module!.arguments.push('-fm');
         if (gameEncoding) {
             Module!.arguments.push('-encoding', gameEncoding);
-            if (gameEncoding === 'gbk' && await prepareGbkFont()) {
+            if (wantCjkFont && await prepareCjkFont()) {
                 Module!.arguments.push('-ttfont_gothic', `/fonts/${GBK_FONT_FILE}`);
                 Module!.arguments.push('-ttfont_mincho', `/fonts/${GBK_FONT_FILE}`);
+            } else if (!wantCjkFont) {
+                setFontStatus('skipped', {reason: override === false ? '按 ?cjkfont=0 请求' : '该编码不需要中文字体'});
             }
+        } else if (override !== false) {
+            setFontStatus('skipped', {reason: '发布清单未指定编码'});
         }
+        diag.setContext('encoding', gameEncoding ?? '(未指定)');
+        diag.setContext('antialias', config.antialias);
+        diag.setContext('arguments', [...Module!.arguments]);
+        diag.setContext('cjkFontRequested', wantCjkFont);
+        diag.record('life', '引擎参数已确定', {arguments: [...Module!.arguments].join(' ')});
         Module!.removeRunDependency('gameFiles');
         document.dispatchEvent(new Event('gamestart'));
     }, 0);
