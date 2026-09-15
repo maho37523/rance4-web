@@ -41,6 +41,7 @@ const url = value('url', 'http://127.0.0.1:4173/index.html?game=rkt');
 const minutes = Number(value('minutes', '10'));
 const out = value('out', 'hangwatch');
 const autoClick = hasFlag('auto-click');
+const doubleClick = hasFlag('double-click');
 const clickEveryMs = Number(value('click-every', '4000'));
 const width = Number(value('width', '1043'));
 const height = Number(value('height', '531'));
@@ -158,6 +159,25 @@ let lastClick = 0;
 let hangIndex = 0;
 let lastProbe = '';
 
+/** Save the shell's report for this stall; returns a suffix for the log line. */
+async function grabReport(index) {
+    const file = join(OUT, `${out}-hang-${index}.txt`);
+    try {
+        const report = await evaluate('window.ranceDiag ? window.ranceDiag.report() : "(no recorder)"', 10000);
+        await writeFile(file, report);
+        // The watchdog line and the last few audio/page events are what the
+        // investigation actually reads, so surface them here too.
+        const interesting = report.split('\n')
+            .filter((line) => /watchdog\]|主线程无响应|CDDA|音轨|CD 读取|audio|stalled|waiting/.test(line))
+            .slice(0, 6)
+            .map((line) => `\n[hangwatch]   ${line.trim()}`)
+            .join('');
+        return `\n[hangwatch] report ${file}${interesting}`;
+    } catch (error) {
+        return `\n[hangwatch] report failed: ${error.message}`;
+    }
+}
+
 while (Date.now() - startedAt < minutes * 60000) {
     await sleep(2000);
     const elapsed = Math.round((Date.now() - startedAt) / 1000);
@@ -196,18 +216,17 @@ while (Date.now() - startedAt < minutes * 60000) {
         } catch (error2) {
             console.log(`[hangwatch] screenshot failed: ${error2.message}`);
         }
+        // Grab the shell's own report as soon as the page answers, whether or
+        // not it came back for good.  A brief stall is exactly the evidence a
+        // "it freezes for ten seconds" report needs, and the report is
+        // unavailable while the main thread is blocked -- so waiting for a
+        // verdict of "permanently dead" throws away the useful case.
+        const reportText = await grabReport(hangIndex);
         if (recovered) {
-            console.log(`[hangwatch] t=${elapsed}s RECOVERED after ~${attempts * 5}s; ${probe}`);
+            console.log(`[hangwatch] t=${elapsed}s RECOVERED after ~${attempts * 5}s; ${probe}${reportText}`);
             continue;
         }
-        console.log(`[hangwatch] t=${elapsed}s STILL DEAD after 30s — writing evidence (silent since ${silentSince})`);
-        try {
-            const report = await evaluate('window.ranceDiag ? window.ranceDiag.report() : "(no recorder)"', 10000);
-            await writeFile(join(OUT, `${out}-hang-${hangIndex}.txt`), report);
-            console.log(`[hangwatch] report ${join(OUT, `${out}-hang-${hangIndex}.txt`)}`);
-        } catch (error2) {
-            console.log(`[hangwatch] report failed: ${error2.message}`);
-        }
+        console.log(`[hangwatch] t=${elapsed}s STILL DEAD after 30s — evidence written (silent since ${silentSince})${reportText}`);
         break;
     }
     if (probe !== lastProbe) {
@@ -222,9 +241,13 @@ while (Date.now() - startedAt < minutes * 60000) {
             lastClick = now;
             const x = Math.round(width / 2);
             const y = Math.round(height * 0.75);
+            // xsystem35 ignores a lone synthetic left click in headless Chrome
+            // but advances on a double click (measured: page 8 -> 13), so the
+            // click count is what makes automated progress possible at all.
+            const clickCount = doubleClick ? 2 : 1;
             try {
-                await send('Input.dispatchMouseEvent', {type: 'mousePressed', x, y, button: 'left', clickCount: 1}, sessionId, 5000);
-                await send('Input.dispatchMouseEvent', {type: 'mouseReleased', x, y, button: 'left', clickCount: 1}, sessionId, 5000);
+                await send('Input.dispatchMouseEvent', {type: 'mousePressed', x, y, button: 'left', clickCount}, sessionId, 5000);
+                await send('Input.dispatchMouseEvent', {type: 'mouseReleased', x, y, button: 'left', clickCount}, sessionId, 5000);
             } catch (error) {
                 console.log(`[hangwatch] t=${elapsed}s click blocked: ${error.message}`);
             }
