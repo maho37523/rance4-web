@@ -460,7 +460,9 @@ async function startSelectedGame() {
                // Rance 4's Chinese scenario bytes are already UTF-8.  Converting
                // the archive back to GBK would shift its in-page jump addresses.
                // Keep the original bytes and select the engine's UTF-8 reader.
-               encoding: game === 'rance4' ? 'utf8' : 'gbk', bgm},
+               // Only xsystem35 accepts this launcher flag. Rance 4.1/4.2
+               // use system3.ini and reject `-encoding gbk` at startup.
+               encoding: game === 'rance4' ? 'utf8' : undefined, bgm},
     }));
   } catch (error) {
     status.textContent = `加载失败：${error instanceof Error ? error.message : error}`;
