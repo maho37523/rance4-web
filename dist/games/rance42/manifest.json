@@ -3,159 +3,198 @@
   "files": [
     {
       "path": "ACG.dat",
-      "publicPath": "ACG.dat"
+      "publicPath": "ACG.dat",
+      "sha256": "6736f8c14dd1f1dbcc74fb0f20e187b6e19078e5561ab3b1cfb7fcc3db562d7c"
     },
     {
       "path": "ADISK.dat",
-      "publicPath": "ADISK.dat"
+      "publicPath": "ADISK.dat",
+      "sha256": "44ae868ed01faf178e995bab502d45a66e6ea038d1f4e060772edac02f646519"
     },
     {
       "path": "AMUS.DAT",
-      "publicPath": "AMUS.DAT"
+      "publicPath": "AMUS.DAT",
+      "sha256": "c83722d9d4dd0577f4fe182c409031d892a759efcd67be84365840e7a614bb2f"
     },
     {
       "path": "BCG.dat",
-      "publicPath": "BCG.dat"
+      "publicPath": "BCG.dat",
+      "sha256": "22e92df6040f4677500e6f7ccd0e35f8ebf697edd8e5c164939030205de2cb67"
     },
     {
       "path": "bgm/02.mp3",
-      "publicPath": "bgm/02.mp3"
+      "publicPath": "bgm/02.mp3",
+      "sha256": "23c42bf2703ec55d6a0e73874300d4a82f7a15827eec87df2dfe64dc6776dc58"
     },
     {
       "path": "bgm/03.mp3",
-      "publicPath": "bgm/03.mp3"
+      "publicPath": "bgm/03.mp3",
+      "sha256": "651ae672f3a7e2d6b1bb50862dcebfa6954bba353f838abd0ca7e10643a971ea"
     },
     {
       "path": "bgm/04.mp3",
-      "publicPath": "bgm/04.mp3"
+      "publicPath": "bgm/04.mp3",
+      "sha256": "7320617fb7bcbf0ecf853d606755218b9d94f9996351b0e2271e27ea4acea2d1"
     },
     {
       "path": "bgm/05.mp3",
-      "publicPath": "bgm/05.mp3"
+      "publicPath": "bgm/05.mp3",
+      "sha256": "d13923f00aa3af4f65be3a13c1aff5e3370139cf10b4fdbaa0a5ffc69323921b"
     },
     {
       "path": "bgm/06.mp3",
-      "publicPath": "bgm/06.mp3"
+      "publicPath": "bgm/06.mp3",
+      "sha256": "39a47e16bb6f49ac5b8c9c16e5c0e0a640b6ff18e2410fc3617e01d1933145d6"
     },
     {
       "path": "bgm/07.mp3",
-      "publicPath": "bgm/07.mp3"
+      "publicPath": "bgm/07.mp3",
+      "sha256": "053f144ec51b85b9d9cbef82a441b8e0ccbcab4f01aee9e0ac8711d344f0b766"
     },
     {
       "path": "bgm/08.mp3",
-      "publicPath": "bgm/08.mp3"
+      "publicPath": "bgm/08.mp3",
+      "sha256": "daf432c2c2c06fdcd9fb2f775a07d57cc67dbe144cff80b40fb7a90885b0d9ff"
     },
     {
       "path": "bgm/09.mp3",
-      "publicPath": "bgm/09.mp3"
+      "publicPath": "bgm/09.mp3",
+      "sha256": "45fd6868ede22902597213c06ff2d9f422732cfc8750e059081f88dfed851d19"
     },
     {
       "path": "bgm/10.mp3",
-      "publicPath": "bgm/10.mp3"
+      "publicPath": "bgm/10.mp3",
+      "sha256": "17717314afb4dd93beb85c7395e202404adc95d8dc7bc3b5153ace08301ce3f4"
     },
     {
       "path": "bgm/11.mp3",
-      "publicPath": "bgm/11.mp3"
+      "publicPath": "bgm/11.mp3",
+      "sha256": "2a241e8f2ceb6325853c6b7bcbf622ef3c0024383e89af5fc9b49dd6c1238d25"
     },
     {
       "path": "bgm/12.mp3",
-      "publicPath": "bgm/12.mp3"
+      "publicPath": "bgm/12.mp3",
+      "sha256": "96361976089a31d97502663396112a1d6707ec1253b433e0dd56dfeaae16d33d"
     },
     {
       "path": "bgm/13.mp3",
-      "publicPath": "bgm/13.mp3"
+      "publicPath": "bgm/13.mp3",
+      "sha256": "eb56e308a27b618a89ebd19636788617c06de8cf152394d48647f5b312cf2d77"
     },
     {
       "path": "bgm/14.mp3",
-      "publicPath": "bgm/14.mp3"
+      "publicPath": "bgm/14.mp3",
+      "sha256": "587e009279de905eb5e1897cbb4ce63a9ba886389f8e5bc4543d0fc7675c5eb5"
     },
     {
       "path": "bgm/15.mp3",
-      "publicPath": "bgm/15.mp3"
+      "publicPath": "bgm/15.mp3",
+      "sha256": "150055a51c8bdc41a347cf580d48ea112147dd115671b3b2a3c61c9011a0cb9e"
     },
     {
       "path": "bgm/16.mp3",
-      "publicPath": "bgm/16.mp3"
+      "publicPath": "bgm/16.mp3",
+      "sha256": "23e80afb1263fa6df3ec07aa8d042506b383ac699ba7911375be9489172e9da5"
     },
     {
       "path": "bgm/17.mp3",
-      "publicPath": "bgm/17.mp3"
+      "publicPath": "bgm/17.mp3",
+      "sha256": "e3bfa8ff514810a8a1896746b72c175fc86dbf42c332bb6e073e4f456ded2536"
     },
     {
       "path": "bgm/18.mp3",
-      "publicPath": "bgm/18.mp3"
+      "publicPath": "bgm/18.mp3",
+      "sha256": "46e78cc7661195174f788d10dfe5fad0741ed2cf63f2344a64ed3cc308797100"
     },
     {
       "path": "bgm/19.mp3",
-      "publicPath": "bgm/19.mp3"
+      "publicPath": "bgm/19.mp3",
+      "sha256": "3e6932f71bdf381781f18a09e95d423725ae65a6f9ce5e004ac749d5e9a25134"
     },
     {
       "path": "bgm/20.mp3",
-      "publicPath": "bgm/20.mp3"
+      "publicPath": "bgm/20.mp3",
+      "sha256": "26034493560c6d99d589e9f1ab0c52ab4436dfb3394701c0da9f48dd7a162e44"
     },
     {
       "path": "bgm/AlbumArt_{00000000-0000-0000-0000-000000000000}_Large.jpg",
-      "publicPath": "bgm/AlbumArt_{00000000-0000-0000-0000-000000000000}_Large.jpg"
+      "publicPath": "bgm/AlbumArt_{00000000-0000-0000-0000-000000000000}_Large.jpg",
+      "sha256": "cc12b2ebd7ca872b39c835f8b3a14def36fa514c96eb531e6e5b8640a8ca0d64"
     },
     {
       "path": "bgm/AlbumArt_{00000000-0000-0000-0000-000000000000}_Small.jpg",
-      "publicPath": "bgm/AlbumArt_{00000000-0000-0000-0000-000000000000}_Small.jpg"
+      "publicPath": "bgm/AlbumArt_{00000000-0000-0000-0000-000000000000}_Small.jpg",
+      "sha256": "0efa3d7cbd210d633562bb9bcf913dae8cd5b8afc68f79c160af45e0fca1ed52"
     },
     {
       "path": "bgm/AlbumArtSmall.jpg",
-      "publicPath": "bgm/AlbumArtSmall.jpg"
+      "publicPath": "bgm/AlbumArtSmall.jpg",
+      "sha256": "0efa3d7cbd210d633562bb9bcf913dae8cd5b8afc68f79c160af45e0fca1ed52"
     },
     {
       "path": "bgm/Folder.jpg",
-      "publicPath": "bgm/Folder.jpg"
+      "publicPath": "bgm/Folder.jpg",
+      "sha256": "cc12b2ebd7ca872b39c835f8b3a14def36fa514c96eb531e6e5b8640a8ca0d64"
     },
     {
       "path": "bgm/playlist.txt",
-      "publicPath": "bgm/playlist.txt"
+      "publicPath": "bgm/playlist.txt",
+      "sha256": "aefd7ece00c220cb04d3a0b611d4b27b5132b57713d03921cfc29e6a14d54f24"
     },
     {
       "path": "CCG.dat",
-      "publicPath": "CCG.dat"
+      "publicPath": "CCG.dat",
+      "sha256": "574354c96a58b580e473302c3a5eeb053fa0d291c80ef930f104e19af5949a46"
     },
     {
       "path": "GAIJI.DAT",
-      "publicPath": "GAIJI.DAT"
+      "publicPath": "GAIJI.DAT",
+      "sha256": "052e35445a59e4ec8c7dec2910375fdc136cca7d1622a6008237d8ec6ac4b3eb"
     },
     {
       "path": "libfreetype-6.dll",
-      "publicPath": "libfreetype-6.dll"
+      "publicPath": "libfreetype-6.dll",
+      "sha256": "ad5259dbb5940deb60889686296849bfec2c3b810dd4ee3298067763111731be"
     },
     {
       "path": "SDL2_ttf.dll",
-      "publicPath": "SDL2_ttf.dll"
+      "publicPath": "SDL2_ttf.dll",
+      "sha256": "45abb4e22fdd3e56746fe761de978c58def92a194081429386ce1c6d67d1949c"
     },
     {
       "path": "SDL2.dll",
-      "publicPath": "SDL2.dll"
+      "publicPath": "SDL2.dll",
+      "sha256": "f70051e79801f33793090ee0e99d8d57cb392121064dbe0a6b66b375e3f9b6ea"
     },
     {
       "path": "simhei.ttf",
-      "publicPath": "simhei.ttf"
+      "publicPath": "simhei.ttf",
+      "sha256": "aa4560dd8fe5645745fed3ffa301c3ca4d6c03cbd738145b613303961ba733b8"
     },
     {
       "path": "system3.exe",
-      "publicPath": "system3.exe"
+      "publicPath": "system3.exe",
+      "sha256": "cfc24b5317a6020ba52b6b0bec79bd035e4d08f1f47bac9be8d455d30b005d7a"
     },
     {
       "path": "system3.ini",
-      "publicPath": "system3.ini"
+      "publicPath": "system3.ini",
+      "sha256": "8465af1cab54a2995ccdc2af264e3ede1336ddfc97640378676f56325e7c4194"
     },
     {
       "path": "Version.txt",
-      "publicPath": "Version.txt"
+      "publicPath": "Version.txt",
+      "sha256": "35a6fd96d1fdcfa5e7af2835bcbb523bd99798499c8115df9eaba3b77c261ba8"
     },
     {
       "path": "zlib1.dll",
-      "publicPath": "zlib1.dll"
+      "publicPath": "zlib1.dll",
+      "sha256": "aba9686b5fda49381d4250eab2306d77fdd71896c2aa759f0d4a56329bfb36e6"
     },
     {
       "path": "兰斯4.2 汉化说明.pdf",
-      "publicPath": "兰斯4.2 汉化说明.pdf"
+      "publicPath": "兰斯4.2 汉化说明.pdf",
+      "sha256": "dc61e9809ec434a3610833b69d86bc15790a7a4061ef15f6d49313663da97e95"
     }
   ]
 }

@@ -3,147 +3,183 @@
   "files": [
     {
       "path": "ACG.dat",
-      "publicPath": "ACG.dat"
+      "publicPath": "ACG.dat",
+      "sha256": "6b1f587f45182ccf8d1ee0f9694af4f0025b8eba34c7089327a9a89769cdb43a"
     },
     {
       "path": "ADISK.dat",
-      "publicPath": "ADISK.dat"
+      "publicPath": "ADISK.dat",
+      "sha256": "c84fb7a2a202e0d33829d5e0ea51da0a9e2d3403b4295f880e61c293424fbc9b"
     },
     {
       "path": "AMUS.DAT",
-      "publicPath": "AMUS.DAT"
+      "publicPath": "AMUS.DAT",
+      "sha256": "a3deffd688e04d2823bec10b3200f71715a3abd0ba28d426301f50703342b0e2"
     },
     {
       "path": "BCG.dat",
-      "publicPath": "BCG.dat"
+      "publicPath": "BCG.dat",
+      "sha256": "c9f22eeab35769212aaccb19006b297380c603e3cbd8b9b08b0a8aab1900b94c"
     },
     {
       "path": "bgm/02.mp3",
-      "publicPath": "bgm/02.mp3"
+      "publicPath": "bgm/02.mp3",
+      "sha256": "1422fa6be895b1cbabf8887cc0533880632f43cc26682a984651e71cb6310c28"
     },
     {
       "path": "bgm/03.mp3",
-      "publicPath": "bgm/03.mp3"
+      "publicPath": "bgm/03.mp3",
+      "sha256": "47772fc8beb784d242d35740fe32f42cc1b768b10dd2bbb8483a7dd1791d0a19"
     },
     {
       "path": "bgm/04.mp3",
-      "publicPath": "bgm/04.mp3"
+      "publicPath": "bgm/04.mp3",
+      "sha256": "121e139c3ed700c5b84063b0a512a3b07329a16ad9ae47e7492c424c84504d6f"
     },
     {
       "path": "bgm/05.mp3",
-      "publicPath": "bgm/05.mp3"
+      "publicPath": "bgm/05.mp3",
+      "sha256": "8701ba4b68c499b30bc78fcb12a97a4bfbdc66b3fa4314bcf2e83d373d8b06c9"
     },
     {
       "path": "bgm/06.mp3",
-      "publicPath": "bgm/06.mp3"
+      "publicPath": "bgm/06.mp3",
+      "sha256": "754af1fe941afcc76a47fca3f9d49958823e99b736752ce20c48646d91c90207"
     },
     {
       "path": "bgm/07.mp3",
-      "publicPath": "bgm/07.mp3"
+      "publicPath": "bgm/07.mp3",
+      "sha256": "65c5fb17bac9f140b4ba998ff08f1193e59c2d415179232e8585d8eb52f3d0b9"
     },
     {
       "path": "bgm/08.mp3",
-      "publicPath": "bgm/08.mp3"
+      "publicPath": "bgm/08.mp3",
+      "sha256": "9cbcd757997e4296dbcb1f6d3e3a329a790dff17b580b989066386120f80d119"
     },
     {
       "path": "bgm/09.mp3",
-      "publicPath": "bgm/09.mp3"
+      "publicPath": "bgm/09.mp3",
+      "sha256": "417e71819815c4265e4b60377e9f9942f606e83807508cbbc48eb431216e3090"
     },
     {
       "path": "bgm/10.mp3",
-      "publicPath": "bgm/10.mp3"
+      "publicPath": "bgm/10.mp3",
+      "sha256": "e87adf3921995fd3ff5e294c3778949858aa1a5967920c9bcd04771285eb2930"
     },
     {
       "path": "bgm/11.mp3",
-      "publicPath": "bgm/11.mp3"
+      "publicPath": "bgm/11.mp3",
+      "sha256": "f508b40538b03a2f8c7546f62617a268e6248ab9c97b385bf1e8809adeb9c9c6"
     },
     {
       "path": "bgm/12.mp3",
-      "publicPath": "bgm/12.mp3"
+      "publicPath": "bgm/12.mp3",
+      "sha256": "0222efec8d82c1eeea5f6e91bcc4b4fe0faf3212d0cabd101b06203e634a2deb"
     },
     {
       "path": "bgm/13.mp3",
-      "publicPath": "bgm/13.mp3"
+      "publicPath": "bgm/13.mp3",
+      "sha256": "341d943d30065f1e0f8c1f302ff37bcd650b82c110333ec9c502447b99000b0e"
     },
     {
       "path": "bgm/14.mp3",
-      "publicPath": "bgm/14.mp3"
+      "publicPath": "bgm/14.mp3",
+      "sha256": "47835dd3a8eaf9a05e598e5c7de0f40f1657ff6ef14c0d05c28b5d8c3fbfabc9"
     },
     {
       "path": "bgm/15.mp3",
-      "publicPath": "bgm/15.mp3"
+      "publicPath": "bgm/15.mp3",
+      "sha256": "ceb041c0a99195176c1d7c2e99549e98b9b24b113017525ab0342953518eab22"
     },
     {
       "path": "bgm/16.mp3",
-      "publicPath": "bgm/16.mp3"
+      "publicPath": "bgm/16.mp3",
+      "sha256": "5b725cc651065e700cf37c65239dfe8856fd24560f340ee923de9ff1c282e3fa"
     },
     {
       "path": "bgm/17.mp3",
-      "publicPath": "bgm/17.mp3"
+      "publicPath": "bgm/17.mp3",
+      "sha256": "24cf115ceb5c2075b40e07c7c7bc9666bb1546268c9c1e8f47715c0ceda7e3dc"
     },
     {
       "path": "bgm/18.mp3",
-      "publicPath": "bgm/18.mp3"
+      "publicPath": "bgm/18.mp3",
+      "sha256": "5dea914a6dfbe8ed60402f19333f3b822c91e512460fb4b7e95f3b91ef6734ef"
     },
     {
       "path": "bgm/playlist.txt",
-      "publicPath": "bgm/playlist.txt"
+      "publicPath": "bgm/playlist.txt",
+      "sha256": "27658d125a5025e43b7ec19f5e329a2631d34dd91787c6602a8d14fa14cbd72a"
     },
     {
       "path": "CCG.dat",
-      "publicPath": "CCG.dat"
+      "publicPath": "CCG.dat",
+      "sha256": "7f63a3dea6212b4075d21142b61111141d72d335c8f34f2ca11a004e1ac26bae"
     },
     {
       "path": "COPYING.txt",
-      "publicPath": "COPYING.txt"
+      "publicPath": "COPYING.txt",
+      "sha256": "b15f41248f0957edfd2d91202ee810a6ef2d92c0256d330585d806677306a706"
     },
     {
       "path": "GAIJI.DAT",
-      "publicPath": "GAIJI.DAT"
+      "publicPath": "GAIJI.DAT",
+      "sha256": "052e35445a59e4ec8c7dec2910375fdc136cca7d1622a6008237d8ec6ac4b3eb"
     },
     {
       "path": "libfreetype-6.dll",
-      "publicPath": "libfreetype-6.dll"
+      "publicPath": "libfreetype-6.dll",
+      "sha256": "ad5259dbb5940deb60889686296849bfec2c3b810dd4ee3298067763111731be"
     },
     {
       "path": "RANCE41.ICO",
-      "publicPath": "RANCE41.ICO"
+      "publicPath": "RANCE41.ICO",
+      "sha256": "41d9567bb1e999cd80c071f5237385315537288b0c12e24e5826bd1ca8037abe"
     },
     {
       "path": "SDL2_ttf.dll",
-      "publicPath": "SDL2_ttf.dll"
+      "publicPath": "SDL2_ttf.dll",
+      "sha256": "45abb4e22fdd3e56746fe761de978c58def92a194081429386ce1c6d67d1949c"
     },
     {
       "path": "SDL2.dll",
-      "publicPath": "SDL2.dll"
+      "publicPath": "SDL2.dll",
+      "sha256": "f70051e79801f33793090ee0e99d8d57cb392121064dbe0a6b66b375e3f9b6ea"
     },
     {
       "path": "simhei.ttf",
-      "publicPath": "simhei.ttf"
+      "publicPath": "simhei.ttf",
+      "sha256": "aa4560dd8fe5645745fed3ffa301c3ca4d6c03cbd738145b613303961ba733b8"
     },
     {
       "path": "system3.exe",
-      "publicPath": "system3.exe"
+      "publicPath": "system3.exe",
+      "sha256": "cfc24b5317a6020ba52b6b0bec79bd035e4d08f1f47bac9be8d455d30b005d7a"
     },
     {
       "path": "system3.ini",
-      "publicPath": "system3.ini"
+      "publicPath": "system3.ini",
+      "sha256": "0c91db1213a73800b7d46554300fbcdf40b1a7af16096ac454b3c763cff77d24"
     },
     {
       "path": "Version.txt",
-      "publicPath": "Version.txt"
+      "publicPath": "Version.txt",
+      "sha256": "7ca3f0e05d121ffb3d11806b76f705b77721017fbe17347b2bf17d4e5a11dfb6"
     },
     {
       "path": "zlib1.dll",
-      "publicPath": "zlib1.dll"
+      "publicPath": "zlib1.dll",
+      "sha256": "aba9686b5fda49381d4250eab2306d77fdd71896c2aa759f0d4a56329bfb36e6"
     },
     {
       "path": "兰斯4.1 汉化说明.pdf",
-      "publicPath": "兰斯4.1 汉化说明.pdf"
+      "publicPath": "兰斯4.1 汉化说明.pdf",
+      "sha256": "164394b448a9aba5b638ea78f522e949e860dbd1c7d54b878810d40ce47addc8"
     },
     {
       "path": "配布フリー宣言（アリスソフト）.txt",
-      "publicPath": "配布フリー宣言（アリスソフト）.txt"
+      "publicPath": "配布フリー宣言（アリスソフト）.txt",
+      "sha256": "8c45fce00224a552612fdbc767f024e79034711a19ab44e5ac2301c42d6005a0"
     }
   ]
 }

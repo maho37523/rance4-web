@@ -93,26 +93,61 @@ function isUnusedStartFile(path) {
 // Download one file in chunks with retries. A single fetch() of a 19-29 MB ALD
 // is what made the public builds fail outright on mobile: one dropped
 // connection discarded the whole request.
-const RANCEKING_CACHE = 'ranceking-game-data-v1';
+//
+// Whole archives are kept in Cache Storage so a second visit downloads nothing
+// and only has to be validated.  The cache name is versioned so a future change
+// to the layout starts clean; a released asset also changes key because the
+// manifest hash is part of it.
+const GAME_CACHE = 'game-data-v1';
 
-function rancekingCacheKey(entry) {
+function gameCacheKey(entry) {
   // This is a Cache Storage key only; it is never sent over the network.  The
   // asset hash makes a released data update naturally invalidate old files.
   const id = encodeURIComponent(`${entry.path}:${entry.version || entry.url}`);
-  return new Request(new URL(`__ranceking_cache__/${id}`, document.baseURI).href);
+  return new Request(new URL(`__game_cache__/${id}`, document.baseURI).href);
+}
+
+async function sha256Hex(blob) {
+  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Check a cached blob against what the manifest says this file should be.
+ *
+ * Size is always compared because it is free.  The hash is only computed when
+ * the manifest supplies one, which sha256-carrying manifests do; a size-only
+ * match still catches the truncation that a dropped connection produces.
+ */
+async function cacheEntryIsValid(blob, entry) {
+  if (!blob || blob.size === 0)
+    return false;
+  if (typeof entry.size === 'number' && entry.size > 0 && blob.size !== entry.size) {
+    console.warn(`${entry.path}: 缓存大小 ${blob.size} != ${entry.size}，重新下载`);
+    return false;
+  }
+  if (entry.version) {
+    if (await sha256Hex(blob) !== entry.version) {
+      console.warn(`${entry.path}: 缓存校验和不匹配，重新下载`);
+      return false;
+    }
+  }
+  return true;
 }
 
 async function cachedGameFile(entry, onProgress) {
   let cache;
   try {
-    cache = await caches.open(RANCEKING_CACHE);
-    const hit = await cache.match(rancekingCacheKey(entry));
+    cache = await caches.open(GAME_CACHE);
+    const hit = await cache.match(gameCacheKey(entry));
     if (hit) {
       const blob = await hit.blob();
-      if (blob.size > 0) {
+      if (await cacheEntryIsValid(blob, entry)) {
         onProgress?.(blob.size, blob.size, true);
         return blob;
       }
+      // A corrupt or outdated copy must not shadow the network.
+      await cache.delete(gameCacheKey(entry));
     }
   } catch (e) {
     // Storage can be unavailable in private mode or under quota pressure. A
@@ -123,12 +158,52 @@ async function cachedGameFile(entry, onProgress) {
   const blob = await fetchGameFile(entry.url, entry.path, onProgress);
   if (cache) {
     try {
-      await cache.put(rancekingCacheKey(entry), new Response(blob));
+      await cache.put(gameCacheKey(entry), new Response(blob));
     } catch (e) {
+      // Most likely the origin is out of quota.  The game still runs; the user
+      // just pays for the download again next time.
       console.warn('无法保存游戏缓存：', e);
+      reportCacheFailure(e);
     }
   }
   return blob;
+}
+
+/**
+ * Whole-file fetch backed by the game-data cache.  Exposed for the shell so the
+ * GBK font (8 MB, fetched outside the manifest download) is stored once too;
+ * without this the font alone was re-downloaded on every visit.
+ */
+async function fetchCachedWholeFile(url) {
+  const entry = {path: String(url).split('/').pop() || 'file', url: String(url)};
+  return await cachedGameFile(entry);
+}
+window.dshFetchCachedFile = fetchCachedWholeFile;
+
+let cacheFailureReported = false;
+function reportCacheFailure(error) {
+  if (cacheFailureReported)
+    return;
+  cacheFailureReported = true;
+  const message = (error && (error.name || error.message)) || '未知错误';
+  console.warn(`游戏缓存写入失败（${message}），本次仍可正常游玩，但下次需要重新下载。`);
+}
+
+/**
+ * Ask the browser to keep game data across restarts.  Without this, storage
+ * under pressure can be evicted and the "download once" promise breaks.
+ */
+async function requestPersistentStorage() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist)
+      return;
+    if (await navigator.storage.persisted())
+      return;
+    const granted = await navigator.storage.persist();
+    console.log(granted ? '游戏数据已获准长期保存' : '浏览器未授予长期保存，缓存可能被清理');
+  } catch (e) {
+    console.warn('无法申请长期存储：', e);
+  }
 }
 
 async function fetchGameFile(url, label, onProgress) {
@@ -224,10 +299,16 @@ async function downloadGameFiles(entries, status) {
   const totals = new Array(entries.length).fill(0);
   const cached = new Array(entries.length).fill(false);
   const renderProgress = () => {
-    const done = loaded.reduce((sum, value) => sum + value, 0);
-    const known = totals.reduce((sum, value) => sum + value, 0);
+    // Cache hits are not downloads, so they are excluded from the byte count --
+    // otherwise a fully cached start would look like it was transferring
+    // everything again.  The file count still includes them, because they are
+    // ready to use.
+    let done = 0, known = 0, cacheCount = 0, toDownload = 0;
+    for (let i = 0; i < entries.length; i++) {
+      if (cached[i]) { cacheCount++; continue; }
+      if (totals[i] > 0) { toDownload++; done += loaded[i]; known += totals[i]; }
+    }
     const complete = files.filter(Boolean).length;
-    const cacheCount = cached.filter(Boolean).length;
     const amount = known > 0 ? `，${(done / 1048576).toFixed(1)} / ${(known / 1048576).toFixed(1)} MB` : '';
     const reused = cacheCount > 0 ? `，已复用缓存 ${cacheCount} 个` : '';
     status.textContent = `正在加载原始游戏文件：${complete} / ${entries.length}${amount}${reused}`;
@@ -307,27 +388,31 @@ async function startSelectedGame() {
   document.querySelector('#loader .game-picker').hidden = true;
   const status = document.querySelector('#loader .local-status');
   status.hidden = false;
+  await requestPersistentStorage();
   try {
     const gameRoot = new URL(`games/${game}/`, document.baseURI);
     const manifestResponse = await fetch(new URL('manifest.json', gameRoot));
     if (!manifestResponse.ok) throw new Error('游戏资源尚未部署');
     const manifest = await manifestResponse.json();
-    const files = [];
     // These titles ship their music as bgm/*.mp3 plus a playlist rather than a
     // disc image.  That audio must not be downloaded here, but the player needs
     // its URLs, so send the same remote-load event the Kichikuou path uses.
     const allEntries = manifest.files.map((f) => {
       const entry = typeof f === 'string' ? {path: f, publicPath: f} : f;
-      const publicPath = entry.publicPath || entry.path;
-      const url = new URL(publicPath.split('/').map(encodeURIComponent).join('/'), gameRoot);
-      return {path: entry.path, url: url.href};
+      const url = new URL(entry.publicPath || entry.path, gameRoot);
+      return {
+        path: entry.path,
+        url: url.href,
+        version: typeof entry.sha256 === 'string' ? entry.sha256 : '',
+        size: typeof entry.size === 'number' ? entry.size : 0,
+      };
     });
+    // Cached like the Kichikuou archives: the first visit stores every file, so
+    // later visits only validate them.
     const wanted = allEntries.filter((entry) => !isUnusedStartFile(entry.path));
-    for (let i = 0; i < wanted.length; i++) {
-      const entry = wanted[i];
-      status.textContent = `正在加载原始游戏文件：${i + 1} / ${wanted.length}`;
-      files.push(new File([await fetchGameFile(entry.url, entry.path)], entry.path.split('/').pop()));
-    }
+    const downloaded = await downloadGameFiles(wanted, status);
+    const files = downloaded.map((blob, i) =>
+      new File([blob], wanted[i].path.split('/').pop()));
     const bgm = await collectBgmTracks(allEntries);
     document.dispatchEvent(new CustomEvent('load-remote-files', {
       detail: {files, imageUrl: manifest.imageUrl || '', cueUrl: manifest.cueUrl || '',

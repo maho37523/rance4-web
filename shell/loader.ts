@@ -31,9 +31,20 @@ const GBK_FONT_FILE = 'SourceHanSansCN-Normal.otf';
 async function prepareGbkFont(): Promise<boolean> {
     try {
         const url = new URL(`games/rance4/${GBK_FONT_FILE}`, document.baseURI);
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        Module!.FS.writeFile(`/fonts/${GBK_FONT_FILE}`, new Uint8Array(await response.arrayBuffer()));
+        // Prefer the launcher's cached fetch: the font is the largest single
+        // asset outside the manifest, and re-downloading it every visit defeats
+        // the download-once cache.
+        const cachedFetch = (window as any).dshFetchCachedFile as
+            ((url: string) => Promise<Blob>) | undefined;
+        let bytes: Uint8Array;
+        if (cachedFetch) {
+            bytes = new Uint8Array(await (await cachedFetch(url.href)).arrayBuffer());
+        } else {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            bytes = new Uint8Array(await response.arrayBuffer());
+        }
+        Module!.FS.writeFile(`/fonts/${GBK_FONT_FILE}`, bytes);
         return true;
     } catch (error) {
         // The engine can still start with its bundled font; keep the game
