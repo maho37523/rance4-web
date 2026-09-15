@@ -217,65 +217,76 @@ def command_stream(buf):
 
 
 def repair_page(raw):
-    """Repair every run of double-encoded characters.
+    """Repair the double-encoded characters inside each message's text region.
 
-    The corruption turned each Chinese character into its 3-byte UTF-8 form, so
-    a damaged phrase is a long run of consecutive multi-byte UTF-8 sequences.
-    Repairing those runs directly avoids having to frame the command stream
-    exactly: stray command bytes cannot form a run of >= MIN_RUN characters, and
-    a phrase's characters are always contiguous.
+    The engine's rule (cmd_check.c message()) decides where text lives: a text
+    run begins at a byte that is 0x20 or >= 0x80, and continues while each byte
+    is either a space or a GBK lead byte (0x81..0xfe); anything else ends it.
+    Within that region the corruption shows up as runs of multi-byte UTF-8
+    characters, which is what gets converted back to GBK.
+
+    Nothing is inserted to replace the removed bytes: the container rebuild
+    shrinks the entry instead.  Padding the freed space would be swallowed as
+    message text, because a space continues the run.
 
     Returns (new_bytes, stats).
     """
     buf = bytes(raw)
     n = len(buf)
-    MIN_RUN = 3          # consecutive multi-byte chars required before repairing
 
-    def utf8_char_len(b, i):
-        c = b[i]
-        if 0xc2 <= c <= 0xdf: want = 2
-        elif 0xe0 <= c <= 0xef: want = 3
-        elif 0xf0 <= c <= 0xf4: want = 4
+    def is_text_byte(c):
+        return c == 0x20 or c >= 0x80
+
+    def utf8_len(i):
+        c = buf[i]
+        if 0xc2 <= c <= 0xdf: w = 2
+        elif 0xe0 <= c <= 0xef: w = 3
+        elif 0xf0 <= c <= 0xf4: w = 4
         else: return 0
-        if i + want > n: return 0
-        for k in range(1, want):
-            if not (0x80 <= b[i + k] <= 0xbf): return 0
-        return want
+        if i + w > n: return 0
+        for k in range(1, w):
+            if not (0x80 <= buf[i + k] <= 0xbf): return 0
+        return w
 
     stats = {'runs': 0, 'repaired': 0, 'skipped': 0, 'saved': 0}
     out = bytearray()
     i = 0
     while i < n:
-        ln = utf8_char_len(buf, i)
-        if ln == 0:
+        if not is_text_byte(buf[i]) or utf8_len(i) == 0:
             out.append(buf[i]); i += 1; continue
-        # collect the maximal run of multi-byte characters
+        # Walk the message region the engine would read.
+        region_end = i
+        while region_end < n and is_text_byte(buf[region_end]):
+            region_end += 1
+        # Inside it, convert each run of >= 3 consecutive multi-byte UTF-8
+        # characters.  A stray command byte cannot form such a run.
         j = i
-        chars = 0
-        while j < n:
-            l2 = utf8_char_len(buf, j)
-            if l2 == 0: break
-            j += l2; chars += 1
-        if chars < MIN_RUN:
-            out += buf[i:j]; i = j; continue
-        segment = buf[i:j]
-        stats['runs'] += 1
-        try:
-            look = segment.decode('utf-8')
-            fixed = look.encode('gbk')
-        except (UnicodeDecodeError, UnicodeEncodeError):
-            stats['skipped'] += 1
-            out += segment; i = j; continue
-        # must not be valid UTF-8 afterwards, or a second pass would re-break it
-        try:
-            fixed.decode('utf-8')
-            stats['skipped'] += 1
-            out += segment
-        except UnicodeDecodeError:
-            stats['repaired'] += 1
-            stats['saved'] += len(segment) - len(fixed)
-            out += fixed
-        i = j
+        while j < region_end:
+            w = utf8_len(j)
+            if w == 0:
+                out.append(buf[j]); j += 1; continue
+            k = j; chars = 0
+            while k < region_end:
+                w2 = utf8_len(k)
+                if w2 == 0: break
+                k += w2; chars += 1
+            if chars < 3:
+                out += buf[j:k]; j = k; continue
+            seg = buf[j:k]
+            stats['runs'] += 1
+            try:
+                fixed = seg.decode('utf-8').encode('gbk')
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                stats['skipped'] += 1; out += seg; j = k; continue
+            try:
+                fixed.decode('utf-8')
+                stats['skipped'] += 1; out += seg
+            except UnicodeDecodeError:
+                stats['repaired'] += 1
+                stats['saved'] += len(seg) - len(fixed)
+                out += fixed
+            j = k
+        i = region_end
     return bytes(out), stats
 
 

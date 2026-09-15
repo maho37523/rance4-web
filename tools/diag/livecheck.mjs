@@ -23,7 +23,13 @@ ws.onmessage = (e) => { const m = JSON.parse(typeof e.data === 'string' ? e.data
   if (m.method === 'Runtime.consoleAPICalled') logs.push('[console] ' + m.params.args.map(a => a.value ?? a.description ?? a.type).join(' '));
   if (m.method === 'Runtime.exceptionThrown') logs.push('[exception] ' + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text));
   if (m.method === 'Log.entryAdded') logs.push('[log:' + m.params.entry.level + '] ' + m.params.entry.text);
-  if (m.method === 'Network.loadingFailed') netFail.push(m.params.errorText + ' type=' + m.params.type);
+  if (m.method === 'Network.loadingFailed') {
+    const u = (reqUrl[m.params.requestId] || '?').split('/').pop();
+    netFail.push(m.params.errorText + (m.params.canceled ? ' [canceled]' : '') + ' type=' + m.params.type + ' ' + u);
+  }
+  if (m.method === 'Network.requestWillBeSent') {
+    reqUrl[m.params.requestId] = m.params.request.url;
+  }
   if (m.method === 'Network.responseReceived') {
     const r = m.params.response;
     netDone.push({requestId: m.params.requestId, url: r.url, status: r.status, type: r.mimeType, len: 0});
@@ -39,19 +45,32 @@ const {sessionId} = await send('Target.attachToTarget', {targetId, flatten: true
 await send('Page.enable', {}, sessionId); await send('Runtime.enable', {}, sessionId);
 await send('Log.enable', {}, sessionId).catch(() => {});
 await send('Network.enable', {}, sessionId).catch(() => {});
+if (process.env.THROTTLE) {
+  // Mobile-ish: ~1.6 Mbps down, 300 ms RTT.
+  await send('Network.emulateNetworkConditions', {
+    offline: false, latency: 300, downloadThroughput: 200 * 1024, uploadThroughput: 64 * 1024,
+  }, sessionId).catch((e) => console.log('[live] throttle failed:', e.message));
+  console.log('[live] network throttled to ~1.6 Mbps / 300 ms RTT');
+}
 const netFail = [];
 const netDone = [];
+const reqUrl = {};
 const evalp = async (expr) => { const r = await send('Runtime.evaluate', {expression: expr, returnByValue: true}, sessionId); if (r.exceptionDetails) throw new Error(r.exceptionDetails.text); return r.result?.value; };
 const shot = async (n) => { const {data} = await send('Page.captureScreenshot', {format: 'png'}, sessionId); const p = join(OUT, n + '.png'); await writeFile(p, Buffer.from(data, 'base64')); console.log('[live] shot', n); };
 await send('Page.navigate', {url: URL_}, sessionId);
 const t0 = Date.now();
 let last = '', shotAt = 0, n = 0, skipped = false, lastClick = 0;
-while (Date.now() - t0 < 200000) {
+let bootedAt = 0;
+while (Date.now() - t0 < 300000) {
   await new Promise(r => setTimeout(r, 2500));
   const el = Math.round((Date.now() - t0) / 1000);
   try {
     const st = await evalp(`JSON.stringify({status:(document.querySelector('#loader .local-status')||{}).textContent||'', canvases:[...document.querySelectorAll('canvas')].map(c=>c.width+'x'+c.height)})`);
-    if (st !== last) { last = st; console.log(`[live] t=${el}s ${st}`); }
+    if (st !== last) {
+      last = st;
+      console.log(`[live] t=${el}s ${st}`);
+      if (!bootedAt && /640x400/.test(st) && /canvases/.test(st)) { bootedAt = el; console.log(`[live] GAME CANVAS READY at t=${el}s`); }
+    }
   } catch (e) { console.log(`[live] t=${el}s eval blocked: ${e.message}`); }
   if (!skipped && el > 25) { skipped = true; try { await evalp('Module._msgskip_activate(1)'); console.log('[live] message skip on'); } catch {} }
   if (el > 30 && Date.now() - lastClick > 6000) {
@@ -85,6 +104,8 @@ for (const [k, v] of [...byUrl.entries()].sort((a, b) => b[1].bytes - a[1].bytes
   if (v.bytes > 20000 || /ALD|img|cue|wasm/.test(k)) console.log(`  ${(v.bytes/1048576).toFixed(2)} MB  x${v.n}  ${k}`);
 }
 console.log(`  TOTAL ${(total/1048576).toFixed(1)} MB in ${netDone.length} requests`);
+const audio = [...byUrl.entries()].filter(([k]) => /\.(mp3|ogg|wav)$/i.test(k));
+console.log(`  audio requests: ${audio.length}` + (audio.length ? ' -> ' + audio.slice(0,3).map(([k,v])=>`${k} ${(v.bytes/1048576).toFixed(2)}MB`).join(', ') : ' (NONE)'));
 console.log('--- network: failures ---');
 for (const n of netFail) console.log('  ' + n);
 for (const l of logs.slice(-25)) console.log(l);
