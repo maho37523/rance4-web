@@ -262,6 +262,7 @@ async function main() {
         const s = await evaluateInPage(`JSON.stringify({title:document.title,
           status:(document.querySelector('#loader .local-status')||{}).textContent,
           canvases:[...document.querySelectorAll('canvas')].map(c=>c.id+':'+c.width+'x'+c.height+(c.hidden?':hidden':'')),
+          audio:(()=>{const a=document.querySelector('audio'); return a ? {src:!!a.src, ready:a.readyState, paused:a.paused, time:Math.round(a.currentTime)} : null})(),
           diag:self.__nactDiag||null})`);
         console.log(`[harness] t=${Math.round(elapsed / 1000)}s ${s}`);
       } catch (e) { console.log('[harness] eval failed:', e.message); }
