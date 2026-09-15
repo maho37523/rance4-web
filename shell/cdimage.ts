@@ -26,7 +26,18 @@ class FileRangeImage implements RangeImage {
     }
 
     slice(start: number, end: number): Promise<Blob> {
-        return this.readBlob(start, end);
+        // CD tracks can be tens of megabytes. Fetching one enormous Range is
+        // fragile on mobile proxy connections even when Range itself works.
+        // Keep the returned Blob API, but assemble it from bounded requests.
+        const chunkSize = 1 << 20;
+        if (end - start <= chunkSize)
+            return this.readBlob(start, end);
+        return (async () => {
+            const chunks: Blob[] = [];
+            for (let offset = start; offset < end; offset += chunkSize)
+                chunks.push(await this.readBlob(offset, Math.min(end, offset + chunkSize)));
+            return new Blob(chunks);
+        })();
     }
 }
 
