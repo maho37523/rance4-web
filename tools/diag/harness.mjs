@@ -118,6 +118,7 @@ async function main() {
     '--no-default-browser-check', '--disable-gpu', '--use-gl=swiftshader',
     '--disable-software-rasterizer', '--in-process-gpu',
     '--autoplay-policy=no-user-gesture-required',
+    ...(process.env.PROXY_SERVER ? [`--proxy-server=${process.env.PROXY_SERVER}`] : []),
     '--window-size=1043,612',
     'about:blank',
   ], {stdio: ['ignore', 'pipe', 'pipe']});

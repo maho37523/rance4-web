@@ -12,7 +12,13 @@ export const RELEASE_FILES = Object.freeze({
   gb: { name: "GB.ALD", size: 19078928 },
   wa: { name: "WA.ALD", size: 2150928 },
 });
-export const ALLOWED_ORIGIN = "https://maho37523.github.io";
+export const ALLOWED_ORIGINS = new Set([
+  "https://maho37523.github.io",
+  // Fixed local origins used by the checked-in browser harness.  Do not
+  // replace this allowlist with reflection of arbitrary Origin headers.
+  "http://127.0.0.1:4173",
+  "http://localhost:4173",
+]);
 // The CD reader decodes a complete CD-DA track at a time. This image's
 // largest track is 44,370,480 bytes, so 80 MiB is the smallest practical
 // safety ceiling while still rejecting a whole-disc download.
@@ -34,8 +40,8 @@ const ROUTES = Object.freeze({
 
 function corsHeaders(origin) {
   const h = new Headers({ Vary: "Origin" });
-  if (origin === ALLOWED_ORIGIN) {
-    h.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    h.set("Access-Control-Allow-Origin", origin);
     h.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
     h.set("Access-Control-Allow-Headers", "Range, Content-Type");
     h.set("Access-Control-Expose-Headers", "Accept-Ranges, Content-Range, Content-Length, Content-Type");

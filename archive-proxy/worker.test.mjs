@@ -28,6 +28,16 @@ test('allows one bounded IMG range and preserves CORS/range metadata', async () 
   assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [7]);
 });
 
+test('allows only the fixed local harness origin in addition to Pages', async () => {
+  const request = new Request(`${site}/v1/ranceking/SA.ALD`, {
+    headers: {Origin: 'http://127.0.0.1:4173'},
+  });
+  const response = await handleRequest(request, () => new Response(new Uint8Array(3912464), {
+    status: 200, headers: {'Content-Length': '3912464'},
+  }));
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), 'http://127.0.0.1:4173');
+});
+
 test('rejects unbounded, multi-range and query-string IMG requests before upstream fetch', async () => {
   const neverFetch = () => assert.fail('must not fetch upstream');
   for (const path of [
